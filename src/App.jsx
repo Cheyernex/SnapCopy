@@ -301,13 +301,18 @@ export default function App() {
 
   const renderMarkdown = (text) => {
     if (!text) return null;
-    const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+    let cleanText = text;
+    // Si el texto completo empieza y termina con **, limpiarlo para evitar asteriscos sin renderizar
+    if (cleanText.startsWith('**') && cleanText.endsWith('**') && cleanText.indexOf('**', 2) === cleanText.length - 2) {
+      cleanText = cleanText.slice(2, -2);
+    }
+    const parts = cleanText.split(/(`[^`]+`|\*\*[^*`]+(?:\`[^`]+\`[^*`]*)*\*\*)/g);
     return parts.map((part, i) => {
       if (part.startsWith('`') && part.endsWith('`')) {
         return <code key={i} style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '1px 6px', borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>{part.slice(1, -1)}</code>;
       }
       if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={i} style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{part.slice(2, -2)}</strong>;
+        return <strong key={i} style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{renderMarkdown(part.slice(2, -2))}</strong>;
       }
       return part;
     });
@@ -332,6 +337,9 @@ export default function App() {
     fixed: { bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.3)', text: '#818cf8' },
     performance: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', text: '#fbbf24' },
     changed: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', text: '#fbbf24' },
+    novedades: { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', text: '#34d399' },
+    mejoras: { bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.3)', text: '#818cf8' },
+    ajustes: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', text: '#fbbf24' },
   };
 
   const formatReleaseNotes = (notes) => {
@@ -347,13 +355,13 @@ export default function App() {
     let currentSection = null;
 
     for (const line of lines) {
-      const headingMatch = line.match(/^###\s+(.+)/);
+      const headingMatch = line.match(/^(?:###|##|#)\s+(.+)/);
       if (headingMatch) {
         currentSection = { heading: headingMatch[1].trim(), items: [] };
         sections.push(currentSection);
         continue;
       }
-      const itemMatch = line.match(/^-\s+(.+)/);
+      const itemMatch = line.match(/^(?:-|\*)\s+(.+)/);
       if (itemMatch && currentSection) {
         currentSection.items.push(itemMatch[1].trim());
       }
@@ -372,7 +380,7 @@ export default function App() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {sections.map((section, si) => {
-          const key = section.heading.toLowerCase();
+          const key = section.heading.toLowerCase().replace(/[^a-z0-9]/g, '');
           const colors = sectionColors[key] || { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.06)', text: 'var(--text-primary)', label: section.heading };
           return (
             <div key={si}>
@@ -388,9 +396,17 @@ export default function App() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {section.items.map((item, ii) => {
-                  const colonIdx = item.indexOf(':');
-                  const title = colonIdx > 0 ? item.slice(0, colonIdx).trim() : '';
-                  const body = colonIdx > 0 ? item.slice(colonIdx + 1).trim() : item;
+                  let cleanItem = item.trim();
+                  const colonIdx = cleanItem.indexOf(':');
+                  let title = '';
+                  let body = cleanItem;
+                  if (colonIdx > 0) {
+                    title = cleanItem.slice(0, colonIdx).trim();
+                    body = cleanItem.slice(colonIdx + 1).trim();
+                    if (title.startsWith('**') && title.endsWith('**')) {
+                      title = title.slice(2, -2).trim();
+                    }
+                  }
                   return (
                     <div key={ii} style={{
                       display: 'flex', gap: '8px', alignItems: 'flex-start',
@@ -398,11 +414,11 @@ export default function App() {
                     }}>
                       <span style={{ color: colors.text, fontSize: '0.7rem', marginTop: '3px', flexShrink: 0 }}>▸</span>
                       <div style={{ fontSize: '0.82rem', lineHeight: '1.45', color: 'var(--text-secondary)' }}>
-                        {title && (
+                        {title ? (
                           <strong style={{ color: 'var(--text-primary)', fontWeight: 600, marginRight: '4px' }}>
                             {renderMarkdown(title)}:
                           </strong>
-                        )}
+                        ) : null}
                         {renderMarkdown(body)}
                       </div>
                     </div>
@@ -2589,8 +2605,11 @@ export default function App() {
       <div
         key={snippet.id}
         className={`snippet-card ${isSelected ? 'selected' : ''}`}
-        draggable
-        onDragStart={(e) => handleSnippetDragStart(e, snippet.id)}
+        draggable={!isHomeView}
+        onDragStart={(e) => {
+          if (isHomeView) return;
+          handleSnippetDragStart(e, snippet.id);
+        }}
         onDragEnd={() => setDraggedSnippetId(null)}
         onClick={(e) => {
           // If in category view and Shift is pressed OR bulk selection is already active
@@ -2711,8 +2730,11 @@ title={t('snippet.delete')}
       <div
         key={snippet.id}
         className={`snippet-list-row ${isSelected ? 'selected' : ''}`}
-        draggable
-        onDragStart={(e) => handleSnippetDragStart(e, snippet.id)}
+        draggable={!isHomeView}
+        onDragStart={(e) => {
+          if (isHomeView) return;
+          handleSnippetDragStart(e, snippet.id);
+        }}
         onDragEnd={() => setDraggedSnippetId(null)}
         onClick={(e) => {
           if (!isHomeView && (e.shiftKey || selectedSnippetIds.length > 0)) {
@@ -3009,7 +3031,7 @@ title={t('snippet.delete')}
 
       {/* 1. SIDEBAR */}
       <aside className={`sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-        <div className="logo-container" style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', width: '100%', marginBottom: '28px' }}>
+        <div className="logo-container" style={{ display: 'flex', alignItems: 'center', justifyContent: isSidebarCollapsed ? 'center' : 'space-between', width: '100%' }}>
           {!isSidebarCollapsed ? (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3474,8 +3496,8 @@ title={t('snippet.delete')}
       <main className="main-content">
         
         {/* Header / Search bar */}
-        <header className="header-bar" style={{ gap: '16px' }}>
-          <div className="search-container" style={{ flexGrow: 1 }}>
+        <header className="header-bar">
+          <div className="search-container">
             <Search className="search-icon" />
             <input 
               type="text" 
@@ -3486,7 +3508,7 @@ title={t('snippet.delete')}
             />
           </div>
           
-          <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div className="header-actions">
             <span className="stat-label">
               {t('header.showing_snippets', { count: filteredSnippets.length, total: snippets.length })}
             </span>
@@ -3561,7 +3583,7 @@ title={t('snippet.delete')}
                 ) : (
                   <Cloud size={13} />
                 )}
-                <span>{syncing ? t('header.syncing_badge') : t('header.cloud_badge')}</span>
+                <span className="cloud-badge-text">{syncing ? t('header.syncing_badge') : t('header.cloud_badge')}</span>
               </div>
             )}
 
