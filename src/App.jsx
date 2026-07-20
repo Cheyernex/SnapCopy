@@ -289,68 +289,91 @@ export default function App() {
     }
   };
 
+  const renderMarkdown = (text) => {
+    if (!text) return null;
+    const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+    return parts.map((part, i) => {
+      if (part.startsWith('`') && part.endsWith('`')) {
+        return <code key={i} style={{ background: 'rgba(99,102,241,0.12)', color: '#a5b4fc', padding: '1px 6px', borderRadius: '4px', fontSize: '0.8rem', fontFamily: 'var(--font-mono)' }}>{part.slice(1, -1)}</code>;
+      }
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+  };
+
+  const sectionColors = {
+    added: { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', text: '#34d399' },
+    fixed: { bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.3)', text: '#818cf8' },
+    performance: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', text: '#fbbf24' },
+    changed: { bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)', text: '#fbbf24' },
+  };
+
   const formatReleaseNotes = (notes) => {
     if (!notes) return null;
-    let clean = typeof notes === 'string' ? notes : String(notes);
-    clean = clean.replace(/<[^>]*>/g, '');
-    const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
-    const items = [];
+    const lines = notes.split('\n').map(l => l.trimEnd());
+    const sections = [];
+    let currentSection = null;
 
-    lines.forEach((line, idx) => {
-      if (/Novedades de SnapCopy/i.test(line) || /^#+\s*/.test(line)) return;
-
-      let text = line.replace(/^[-*•]\s*/, '').trim();
-      if (!text) return;
-
-      let title = '';
-      let body = text;
-      if (text.includes(':')) {
-        const parts = text.split(':');
-        title = parts[0].trim();
-        body = parts.slice(1).join(':').trim();
+    for (const line of lines) {
+      const headingMatch = line.match(/^###\s+(.+)/);
+      if (headingMatch) {
+        currentSection = { heading: headingMatch[1].trim(), items: [] };
+        sections.push(currentSection);
+        continue;
       }
+      const itemMatch = line.match(/^-\s+(.+)/);
+      if (itemMatch && currentSection) {
+        currentSection.items.push(itemMatch[1].trim());
+      }
+    }
 
-      items.push(
-        <div key={idx} style={{
-          display: 'flex',
-          gap: '10px',
-          alignItems: 'flex-start',
-          padding: '10px 12px',
-          borderRadius: '10px',
-          background: 'rgba(255, 255, 255, 0.025)',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          marginBottom: '8px',
-          transition: 'all 0.15s ease'
-        }}>
-          <div style={{
-            width: '22px',
-            height: '22px',
-            borderRadius: '6px',
-            background: 'rgba(99, 102, 241, 0.15)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--color-primary)',
-            flexShrink: 0,
-            marginTop: '1px'
-          }}>
-            <Sparkles size={12} />
-          </div>
-          <div style={{ flexGrow: 1, fontSize: '0.83rem', lineHeight: '1.45' }}>
-            {title ? (
-              <>
-                <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{title}: </strong>
-                <span style={{ color: 'var(--text-secondary)' }}>{body}</span>
-              </>
-            ) : (
-              <span style={{ color: 'var(--text-secondary)' }}>{text}</span>
-            )}
-          </div>
-        </div>
-      );
-    });
-
-    return items;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {sections.map((section, si) => {
+          const key = section.heading.toLowerCase();
+          const colors = sectionColors[key] || { bg: 'rgba(255,255,255,0.03)', border: 'rgba(255,255,255,0.06)', text: 'var(--text-primary)', label: section.heading };
+          return (
+            <div key={si}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '3px 10px', borderRadius: '6px',
+                background: colors.bg, border: `1px solid ${colors.border}`,
+                color: colors.text, fontSize: '0.7rem', fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.5px',
+                marginBottom: '8px'
+              }}>
+                {section.heading}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {section.items.map((item, ii) => {
+                  const colonIdx = item.indexOf(':');
+                  const title = colonIdx > 0 ? item.slice(0, colonIdx).trim() : '';
+                  const body = colonIdx > 0 ? item.slice(colonIdx + 1).trim() : item;
+                  return (
+                    <div key={ii} style={{
+                      display: 'flex', gap: '8px', alignItems: 'flex-start',
+                      padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.03)',
+                    }}>
+                      <span style={{ color: colors.text, fontSize: '0.7rem', marginTop: '3px', flexShrink: 0 }}>▸</span>
+                      <div style={{ fontSize: '0.82rem', lineHeight: '1.45', color: 'var(--text-secondary)' }}>
+                        {title && (
+                          <strong style={{ color: 'var(--text-primary)', fontWeight: 600, marginRight: '4px' }}>
+                            {renderMarkdown(title)}:
+                          </strong>
+                        )}
+                        {renderMarkdown(body)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   // When a category is explicitly set, exit home view
@@ -5027,7 +5050,7 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
                   background: 'rgba(15, 23, 42, 0.5)',
                   padding: '14px', borderRadius: '14px',
                   border: '1px solid rgba(255, 255, 255, 0.06)',
-                  maxHeight: '180px', overflowY: 'auto'
+                  maxHeight: '320px', overflowY: 'auto'
                 }}>
                   <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px' }}>
                     {t('update_modal.release_notes')}
