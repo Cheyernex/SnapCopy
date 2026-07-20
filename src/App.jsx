@@ -312,6 +312,9 @@ export default function App() {
 
   const formatReleaseNotes = (notes) => {
     if (!notes) return null;
+    if (Array.isArray(notes)) {
+      notes = notes.map(n => typeof n === 'string' ? n : (n.note || '')).join('\n');
+    }
     const lines = notes.split('\n').map(l => l.trimEnd());
     const sections = [];
     let currentSection = null;
@@ -327,6 +330,16 @@ export default function App() {
       if (itemMatch && currentSection) {
         currentSection.items.push(itemMatch[1].trim());
       }
+    }
+
+    if (sections.length === 0) {
+      return (
+        <div style={{ fontSize: '0.82rem', lineHeight: '1.6', color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>
+          {notes.split('\n').map((line, i) => (
+            <div key={i}>{renderMarkdown(line)}</div>
+          ))}
+        </div>
+      );
     }
 
     return (
@@ -4971,7 +4984,7 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
           <div
             className="modal-content"
             style={{
-              maxWidth: '480px',
+              maxWidth: '580px',
               backgroundColor: '#0a0f1d',
               border: '1px solid rgba(255, 255, 255, 0.12)',
               borderRadius: '24px',
@@ -5050,7 +5063,7 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
                   background: 'rgba(15, 23, 42, 0.5)',
                   padding: '14px', borderRadius: '14px',
                   border: '1px solid rgba(255, 255, 255, 0.06)',
-                  maxHeight: '320px', overflowY: 'auto'
+                  maxHeight: '420px', overflowY: 'auto'
                 }}>
                   <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px' }}>
                     {t('update_modal.release_notes')}
