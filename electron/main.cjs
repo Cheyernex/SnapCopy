@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Tray, Menu, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Tray, Menu, nativeImage, shell, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -362,6 +362,58 @@ app.whenReady().then(() => {
   ipcMain.handle('get-auto-start', () => {
     return app.getLoginItemSettings().openAtLogin;
   });
+
+  // Backup Export/Import Handlers
+  ipcMain.handle('export-backup', async (event, data) => {
+    if (!mainWindow) return { success: false };
+    try {
+      const { filePath } = await dialog.showSaveDialog(mainWindow, {
+        title: 'Exportar Respaldo de SnapCopy',
+        defaultPath: `SnapCopy-Backup-${new Date().toISOString().slice(0, 10)}.json`,
+        filters: [{ name: 'JSON Files', extensions: ['json'] }]
+      });
+      if (filePath) {
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+        return { success: true, filePath };
+      }
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+    return { success: false, cancelled: true };
+  });
+
+  ipcMain.handle('import-backup', async () => {
+    if (!mainWindow) return { success: false };
+    try {
+      const { filePaths } = await dialog.showOpenDialog(mainWindow, {
+        title: 'Importar Respaldo de SnapCopy',
+        filters: [{ name: 'JSON Files', extensions: ['json'] }],
+        properties: ['openFile']
+      });
+      if (filePaths && filePaths.length > 0) {
+        const content = fs.readFileSync(filePaths[0], 'utf-8');
+        const parsed = JSON.parse(content);
+        return { success: true, data: parsed };
+      }
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+    return { success: false, cancelled: true };
+  });
+
+  // Global Shortcut Registration (Ctrl+Shift+V)
+  try {
+    globalShortcut.register('CommandOrControl+Shift+V', () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.send('focus-search');
+      }
+    });
+  } catch (err) {
+    console.error('Failed to register global shortcut:', err);
+  }
 
   // Auto-Updater handlers & listeners
   autoUpdater.on('update-available', (info) => {

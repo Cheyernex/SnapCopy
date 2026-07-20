@@ -1794,3 +1794,86 @@ body {
 .select-checkbox-hover-container:hover {
   opacity: 1 !important;
 }
+
+/* Code Syntax Themes */
+.code-theme-vs-dark .code-block,
+.code-theme-vs-dark .snippet-code-preview {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.code-theme-one-dark .code-block,
+.code-theme-one-dark .snippet-code-preview {
+  background-color: #282c34 !important;
+  color: #abb2bf !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+.code-theme-monokai .code-block,
+.code-theme-monokai .snippet-code-preview {
+  background-color: #272822 !important;
+  color: #f8f8f2 !important;
+  border-color: rgba(249, 38, 114, 0.2) !important;
+}
+
+.code-theme-dracula .code-block,
+.code-theme-dracula .snippet-code-preview {
+  background-color: #282a36 !important;
+  color: #f8f8f2 !important;
+  border-color: rgba(189, 147, 249, 0.25) !important;
+}
+
+.code-theme-github-dark .code-block,
+.code-theme-github-dark .snippet-code-preview {
+  background-color: #0d1117 !important;
+  color: #c9d1d9 !important;
+  border-color: #30363d !important;
+}
+
+/* Pinned Snippet Badge & Pin Button */
+.pin-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.pin-btn:hover {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+.pin-btn.pinned {
+  color: #f59e0b;
+}
+
+/* Tag Chips */
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tag-chip:hover {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(99, 102, 241, 0.45);
+  color: #ffffff;
+}
+.tag-chip.active {
+  background: #6366f1;
+  color: #ffffff;
+  border-color: #818cf8;
+}

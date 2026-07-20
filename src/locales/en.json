@@ -275,6 +275,8 @@
   "uptodate_modal": {
     "title": "SnapCopy is up to date",
     "description": "You are using the latest version available for your system.",
+    "success_title": "Update Successful!",
+    "success_desc": "SnapCopy has been successfully updated to the latest version.",
     "version_installed": "Installed version"
   },
   "default_snippets": {

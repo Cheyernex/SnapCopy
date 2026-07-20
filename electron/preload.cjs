@@ -9,6 +9,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAutoStart: () => ipcRenderer.invoke('get-auto-start'),
   sendEmail: (data) => ipcRenderer.invoke('send-email', data),
 
+  exportBackup: (data) => ipcRenderer.invoke('export-backup', data),
+  importBackup: () => ipcRenderer.invoke('import-backup'),
+  onFocusSearch: (callback) => ipcRenderer.on('focus-search', () => callback()),
+
   // Auto-Updater IPC
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   downloadUpdate: () => ipcRenderer.invoke('download-update'),

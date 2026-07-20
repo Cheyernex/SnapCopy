@@ -191,27 +191,26 @@ export default function App() {
   const [signingOut, setSigningOut] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [isThemePanelOpen, setIsThemePanelOpen] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem('snapcopy_theme') || 'indigo');
+  const [codeTheme, setCodeTheme] = useState(() => localStorage.getItem('snapcopy_code_theme') || 'vs-dark');
+  const [selectedTagFilter, setSelectedTagFilter] = useState(null);
+  const [formTags, setFormTags] = useState('');
+  const searchInputRef = useRef(null);
 
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState(null);
-  const [autoStartEnabled, setAutoStartEnabled] = useState(false);
-
-  // Close context menu on click or scroll
-  useEffect(() => {
-    if (!contextMenu) return;
-    const close = () => setContextMenu(null);
-    window.addEventListener('click', close);
-    window.addEventListener('scroll', close, true);
-    return () => {
-      window.removeEventListener('click', close);
-      window.removeEventListener('scroll', close, true);
-    };
-  }, [contextMenu]);
+  const handleCodeThemeChange = (newTheme) => {
+    setCodeTheme(newTheme);
+    safeSetItem('snapcopy_code_theme', newTheme);
+  };
 
   useEffect(() => {
     if (window.electronAPI && window.electronAPI.getAutoStart) {
       window.electronAPI.getAutoStart().then(setAutoStartEnabled);
+    }
+    if (window.electronAPI && window.electronAPI.onFocusSearch) {
+      window.electronAPI.onFocusSearch(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      });
     }
   }, []);
 
@@ -220,6 +219,50 @@ export default function App() {
     const next = !autoStartEnabled;
     await window.electronAPI.setAutoStart(next);
     setAutoStartEnabled(next);
+    addToast(next ? t('toasts.autostart_enabled') : t('toasts.autostart_disabled'));
+  };
+
+  const handleExportBackup = async () => {
+    if (!window.electronAPI || !window.electronAPI.exportBackup) {
+      addToast(t('toasts.feature_desktop_only') || 'Solo disponible en la app de escritorio');
+      return;
+    }
+    const dataToExport = {
+      version: pkg.version,
+      exportedAt: new Date().toISOString(),
+      workspaces: workspaces,
+      currentWorkspace: currentWorkspace,
+      snippets: snippets
+    };
+    const res = await window.electronAPI.exportBackup(dataToExport);
+    if (res && res.success) {
+      addToast(t('toasts.backup_exported_success') || '¡Respaldo exportado con éxito!');
+    } else if (res && res.error) {
+      addToast(res.error);
+    }
+  };
+
+  const handleImportBackup = async () => {
+    if (!window.electronAPI || !window.electronAPI.importBackup) {
+      addToast(t('toasts.feature_desktop_only') || 'Solo disponible en la app de escritorio');
+      return;
+    }
+    const res = await window.electronAPI.importBackup();
+    if (res && res.success && res.data) {
+      const imported = res.data;
+      if (imported.snippets && Array.isArray(imported.snippets)) {
+        const newSnippets = imported.snippets;
+        const newWorkspaces = imported.workspaces && Array.isArray(imported.workspaces) ? imported.workspaces : workspaces;
+        setSnippets(newSnippets);
+        setWorkspaces(newWorkspaces);
+        saveSnippetsData(newSnippets, newWorkspaces, imported.currentWorkspace || currentWorkspace);
+        addToast(`¡Respaldo importado con éxito (${newSnippets.length} snippets)!`);
+      } else {
+        addToast('El archivo de respaldo no es válido');
+      }
+    } else if (res && res.error) {
+      addToast(res.error);
+    }
   };
 
   // Auto-Updater states
@@ -229,8 +272,22 @@ export default function App() {
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isNoUpdateModalOpen, setIsNoUpdateModalOpen] = useState(false);
+  const [isPostUpdateSuccess, setIsPostUpdateSuccess] = useState(false);
+  const isManualCheckRef = useRef(false);
 
   useEffect(() => {
+    // Detect post-update launch
+    try {
+      const lastInstalledVersion = localStorage.getItem('snapcopy_installed_version');
+      if (lastInstalledVersion && lastInstalledVersion !== pkg.version) {
+        setIsPostUpdateSuccess(true);
+        setIsNoUpdateModalOpen(true);
+        safeSetItem('snapcopy_installed_version', pkg.version);
+      } else if (!lastInstalledVersion) {
+        safeSetItem('snapcopy_installed_version', pkg.version);
+      }
+    } catch (e) {}
+
     if (!window.electronAPI) return;
     if (window.electronAPI.onUpdateAvailable) {
       window.electronAPI.onUpdateAvailable((info) => {
@@ -240,7 +297,10 @@ export default function App() {
     }
     if (window.electronAPI.onUpdateNotAvailable) {
       window.electronAPI.onUpdateNotAvailable(() => {
-        setIsNoUpdateModalOpen(true);
+        if (isManualCheckRef.current) {
+          setIsNoUpdateModalOpen(true);
+          isManualCheckRef.current = false;
+        }
       });
     }
     if (window.electronAPI.onUpdateProgress) {
@@ -292,10 +352,13 @@ export default function App() {
       addToast(t('toasts.update_available_exe'));
       return;
     }
+    isManualCheckRef.current = true;
+    setIsPostUpdateSuccess(false);
     addToast(t('toasts.checking_updates'));
     const res = await window.electronAPI.checkForUpdates();
     if (res && (res.status === 'dev' || res.error || !res.updateInfo)) {
       setIsNoUpdateModalOpen(true);
+      isManualCheckRef.current = false;
     }
   };
 
@@ -882,7 +945,7 @@ export default function App() {
 
   // Get unique folders within a given category for current workspace
   const getFoldersForCategory = (category) => {
-    const catSnippets = workspaceSnippets.filter(s => s.category === category && s.folder);
+    const catSnippets = snippets.filter(s => s.category === category && s.folder && s.workspace === currentWorkspace);
     const snippetFolders = [...new Set(catSnippets.map(s => s.folder))];
     const workspaceFolders = folders[currentWorkspace] || {};
     const registeredFolders = workspaceFolders[category] || [];
@@ -1235,6 +1298,7 @@ export default function App() {
     setFormContent('');
     setFormColor('indigo');
     setFormFolder(activeFolder || '');
+    setFormTags('');
     setIsFormModalOpen(true);
   };
 
@@ -1248,6 +1312,7 @@ export default function App() {
     setFormContent(snippet.content);
     setFormColor(snippet.color || 'indigo');
     setFormFolder(snippet.folder || '');
+    setFormTags(snippet.tags ? (Array.isArray(snippet.tags) ? snippet.tags.join(', ') : snippet.tags) : '');
     setIsFormModalOpen(true);
   };
 
@@ -1263,9 +1328,10 @@ export default function App() {
     e.preventDefault();
     if (!formTitle.trim() || !formContent.trim()) return;
 
-    const category = formCategory.trim() ? formCategory.trim() : 'General';
-    const folder = formFolder || null;
-    let updatedSnippets = [];
+    const category = formCategory || selectedCategoryOption || 'General';
+    const folder = formFolder ? formFolder.trim() : null;
+    const parsedTags = formTags ? formTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean) : [];
+    let updatedSnippets;
 
     if (editingSnippet) {
       // Editing
@@ -1278,6 +1344,7 @@ export default function App() {
             content: formContent,
             color: formColor,
             folder: folder,
+            tags: parsedTags,
             workspace: s.workspace || currentWorkspace
           };
         }
@@ -1292,6 +1359,7 @@ export default function App() {
         content: formContent,
         color: formColor,
         folder: folder,
+        tags: parsedTags,
         workspace: currentWorkspace
       };
       updatedSnippets = [newSnippet, ...snippets];
@@ -1877,18 +1945,22 @@ export default function App() {
   const filteredSnippets = workspaceSnippets.filter(s => {
     const matchesCategory = isHomeView ? true : s.category === activeCategory;
     const matchesFolder = activeFolder === null ? true : s.folder === activeFolder;
+    const matchesTag = !selectedTagFilter ? true : (s.tags && Array.isArray(s.tags) && s.tags.includes(selectedTagFilter));
     const matchesSearch = (s.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (s.category || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
                           (s.content || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (s.folder || '').toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesFolder && matchesSearch;
+                          (s.folder || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (s.tags && Array.isArray(s.tags) && s.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())));
+    return matchesCategory && matchesFolder && matchesSearch && matchesTag;
   });
 
   // Sorting Logic: Pinned snippets go to the top, then sort by id (newest first)
   const sortedSnippets = useMemo(() =>
     [...filteredSnippets].sort((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
+      const aPinned = Boolean(a.isPinned || a.pinned);
+      const bPinned = Boolean(b.isPinned || b.pinned);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
       return b.id.localeCompare(a.id);
     }),
     [filteredSnippets]
@@ -2724,8 +2796,26 @@ title={t('snippet.delete')}
           <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#eab308' }} />
           <div style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: '#22c55e' }} />
           <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', marginLeft: '4px', fontFamily: 'var(--font-mono)', flexGrow: 1 }}>{(snippet.category || 'General').toLowerCase()}</span>
-          {snippet.pinned && <Pin size={9} style={{ color: 'var(--color-warning)', fill: 'var(--color-warning)' }} />}
+          {(snippet.isPinned || snippet.pinned) && <Pin size={9} style={{ color: 'var(--color-warning)', fill: 'var(--color-warning)' }} />}
         </div>
+
+        {snippet.tags && Array.isArray(snippet.tags) && snippet.tags.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', padding: '6px 12px 0 12px' }} onClick={e => e.stopPropagation()}>
+            {snippet.tags.map((tag, ti) => (
+              <span
+                key={ti}
+                className={`tag-chip ${selectedTagFilter === tag ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedTagFilter(prev => prev === tag ? null : tag);
+                }}
+              >
+                <Hash size={10} />
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className="snippet-code-wrapper" style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTop: 0 }}>
           <pre className="snippet-code">
@@ -2933,7 +3023,7 @@ title={t('snippet.delete')}
           </div>
         </div>
       ) : (
-      <div className="app-container">
+      <div className={`app-container code-theme-${codeTheme}`}>
 
       {/* SYNC OVERLAY — shown during cloud sync after login */}
       {syncingFull && (
@@ -3515,15 +3605,28 @@ title={t('snippet.delete')}
         
         {/* Header / Search bar */}
         <header className="header-bar">
-          <div className="search-container">
+          <div className="search-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Search className="search-icon" />
             <input 
+              ref={searchInputRef}
               type="text" 
               className="search-input" 
               placeholder={t('header.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {selectedTagFilter && (
+              <div 
+                className="tag-chip active"
+                style={{ flexShrink: 0, cursor: 'pointer' }}
+                onClick={() => setSelectedTagFilter(null)}
+                title="Quitar filtro de etiqueta"
+              >
+                <Hash size={10} />
+                <span>#{selectedTagFilter}</span>
+                <X size={10} style={{ marginLeft: '2px' }} />
+              </div>
+            )}
           </div>
           
           <div className="header-actions">
@@ -4185,6 +4288,20 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
                 </div>
 
                 <div className="form-group">
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Hash size={13} style={{ color: 'var(--color-primary)' }} />
+                    <span>Etiquetas (separadas por comas)</span>
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    placeholder="react, hooks, sql, api"
+                    value={formTags}
+                    onChange={(e) => setFormTags(e.target.value)}
+                  />
+                </div>
+
+                <div className="form-group">
                   <label className="form-label">{t('snippet_modal.color_label')}</label>
                   <div className="color-picker-grid">
                     {['indigo', 'emerald', 'violet', 'amber', 'rose'].map(color => (
@@ -4748,6 +4865,91 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
                       {t(`languages.${lang}`)}
                     </button>
                   ))}
+                </div>
+              </div>
+
+              {/* Code Syntax Theme Selector */}
+              <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px' }}>Tema de Bloque de Código</p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                  {[
+                    { id: 'vs-dark', name: 'VS Code Dark' },
+                    { id: 'one-dark', name: 'One Dark Pro' },
+                    { id: 'monokai', name: 'Monokai' },
+                    { id: 'dracula', name: 'Dracula' },
+                    { id: 'github-dark', name: 'GitHub Dark' }
+                  ].map(ct => (
+                    <button
+                      key={ct.id}
+                      onClick={() => handleCodeThemeChange(ct.id)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        border: codeTheme === ct.id ? '1.5px solid var(--color-primary)' : '1.5px solid var(--border)',
+                        backgroundColor: codeTheme === ct.id ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                        color: codeTheme === ct.id ? 'var(--color-primary)' : 'var(--text-secondary)',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {ct.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Backup & Restore Section */}
+              <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px' }}>Copias de Seguridad (Backup)</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={handleExportBackup}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                      color: '#34d399',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <Download size={14} />
+                    <span>Exportar JSON</span>
+                  </button>
+
+                  <button
+                    onClick={handleImportBackup}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      fontWeight: 600,
+                      border: '1px solid rgba(99, 102, 241, 0.3)',
+                      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                      color: '#a5b4fc',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <Upload size={14} />
+                    <span>Importar JSON</span>
+                  </button>
                 </div>
               </div>
 
@@ -5474,9 +5676,9 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
         </div>
       )}
 
-      {/* 9. MODAL DE APLICACIÓN AL DÍA / NO HAY ACTUALIZACIONES */}
+      {/* 9. MODAL DE APLICACIÓN AL DÍA / NO HAY ACTUALIZACIONES / POST-ACTUALIZACIÓN */}
       {isNoUpdateModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsNoUpdateModalOpen(false)}>
+        <div className="modal-backdrop" onClick={() => { setIsNoUpdateModalOpen(false); setIsPostUpdateSuccess(false); }}>
           <div
             className="modal-content"
             style={{
@@ -5514,10 +5716,10 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
             </div>
 
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-              {t('uptodate_modal.title')}
+              {isPostUpdateSuccess ? t('uptodate_modal.success_title') : t('uptodate_modal.title')}
             </h3>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: '1.45' }}>
-              {t('uptodate_modal.description')}
+              {isPostUpdateSuccess ? t('uptodate_modal.success_desc') : t('uptodate_modal.description')}
             </p>
 
             <div style={{
@@ -5543,7 +5745,7 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
 
             <button
               className="btn-primary"
-              onClick={() => setIsNoUpdateModalOpen(false)}
+              onClick={() => { setIsNoUpdateModalOpen(false); setIsPostUpdateSuccess(false); }}
               style={{
                 width: '100%', padding: '13px', borderRadius: '14px', fontSize: '0.92rem',
                 fontWeight: 700, cursor: 'pointer',
