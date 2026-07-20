@@ -403,9 +403,9 @@ export default function App() {
                   if (colonIdx > 0) {
                     title = cleanItem.slice(0, colonIdx).trim();
                     body = cleanItem.slice(colonIdx + 1).trim();
-                    if (title.startsWith('**') && title.endsWith('**')) {
-                      title = title.slice(2, -2).trim();
-                    }
+                    // Sanitizar asteriscos ** al inicio/fin del título y cuerpo
+                    title = title.replace(/^\*\*|\*\*$/g, '').trim();
+                    body = body.replace(/^\*\*|\*\*$/g, '').trim();
                   }
                   return (
                     <div key={ii} style={{
