@@ -1,0 +1,284 @@
+{
+  "app": {
+    "name": "SnapCopy",
+    "version": "SnapCopy v{{version}}",
+    "author": "CMT DEV SOLUTIONS",
+    "email": "cmtdevsolutions@gestricon.com"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "rename": "Rename",
+    "ok": "OK",
+    "confirm": "Confirm",
+    "yes_delete": "Yes, delete",
+    "got_it": "Got it",
+    "previous": "Previous",
+    "next": "Next",
+    "start_using": "Start using",
+    "later": "Later",
+    "selected": "selected",
+    "deselect_all": "Deselect all",
+    "select": "Select",
+    "deselect": "Deselect",
+    "no_folder": "— No folder —",
+    "no_folder_label": "No folder",
+    "root_no_folder": "Root (No folder)",
+    "use_category_for_folders": "Use the category to create folders"
+  },
+  "themes": {
+    "indigo": "Indigo",
+    "midnight": "Midnight",
+    "emerald": "Emerald",
+    "rose": "Rose",
+    "amber": "Amber",
+    "sky": "Sky Blue",
+    "violet": "Violet",
+    "slate": "Slate"
+  },
+  "default_categories": {
+    "sql": "SQL",
+    "console": "Console",
+    "code": "Code",
+    "general": "General"
+  },
+  "alerts": {
+    "workspace_exists": "A workspace with this name already exists.",
+    "workspace_name_empty": "The workspace name cannot be empty."
+  },
+  "toasts": {
+    "download_error": "Download error: {{error}}",
+    "download_error_res": "Download error: {{error}}",
+    "download_update_error": "Error downloading update",
+    "update_available_exe": "Update check available in executable version",
+    "checking_updates": "Checking for updates...",
+    "session_synced": "Session synced — {{count}} snippet(s) loaded",
+    "sync_error": "Error syncing with cloud: {{error}}",
+    "auth_timeout": "Authentication error — timeout",
+    "auth_error": "Error signing in",
+    "session_closed": "Session closed",
+    "copied": "\"{{title}}\" copied to clipboard",
+    "workspace_min_one": "There must be at least one workspace.",
+    "workspace_deleted": "Workspace \"{{name}}\" deleted",
+    "workspace_saved": "Workspace \"{{name}}\" saved",
+    "category_created": "Category \"{{name}}\" created",
+    "category_deleted": "Category \"{{cat}}\" deleted",
+    "category_renamed": "Category renamed to \"{{name}}\"",
+    "folder_exists": "A folder with that name already exists here",
+    "folder_created": "Folder \"{{name}}\" created in {{cat}}{{path}}",
+    "folder_renamed": "Folder renamed to \"{{name}}\"",
+    "folder_deleted": "Folder \"{{name}}\" deleted",
+    "snippets_deleted": "{{count}} snippets deleted",
+    "snippets_moved": "{{count}} snippets moved to \"{{name}}\"",
+    "snippet_moved": "Snippet moved to \"{{name}}\"",
+    "folder_moved": "Folder \"{{name}}\" moved to \"{{target}}\"",
+    "snippets_moved_root": "{{count}} snippets moved to root",
+    "snippet_moved_root": "Snippet moved to root",
+    "folder_moved_root": "Folder \"{{name}}\" moved to root"
+  },
+  "auth": {
+    "restoring_session": "Restoring session...",
+    "tagline": "Save and organize your code snippets, commands and queries",
+    "opening_google": "Opening Google...",
+    "sign_in_google": "Sign in with Google"
+  },
+  "sync": {
+    "syncing_data": "Syncing data...",
+    "loading_content": "Loading your workspaces, folders and settings"
+  },
+  "signout": {
+    "signing_out": "Signing out...",
+    "saving_changes": "Saving changes and disconnecting"
+  },
+  "sidebar": {
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "current_workspace": "Current workspace: {{name}}",
+    "customize_workspace": "Customize Workspace",
+    "delete_workspace": "Delete Workspace",
+    "create_workspace": "Create Workspace...",
+    "create": "Create...",
+    "home": "Home",
+    "categories": "Categories",
+    "manage_categories": "Manage categories",
+    "new_folder": "New Folder",
+    "about": "About"
+  },
+  "header": {
+    "search_placeholder": "Search by title, commands, code...",
+    "showing_snippets": "Showing {{count}} of {{total}} snippets",
+    "customization": "Customization",
+    "show_tour": "Show start tour",
+    "grid_view": "Grid view",
+    "list_view": "Compact list view",
+    "syncing_cloud": "Syncing changes with cloud...",
+    "synced_cloud": "Synced with Supabase",
+    "syncing_badge": "Syncing",
+    "cloud_badge": "In the cloud",
+    "check_updates": "Check for updates",
+    "sign_out": "Sign out"
+  },
+  "breadcrumb": {
+    "home": "Home"
+  },
+  "dashboard": {
+    "greeting": "Hello, {{name}}!",
+    "welcome_back": "Welcome back to your <strong>SnapCopy</strong> dashboard. What will we save or reuse today?",
+    "total_snippets": "Total Snippets",
+    "pinned": "Pinned",
+    "categories": "Categories",
+    "folders": "Folders",
+    "pinned_snippets": "Pinned Snippets ({{count}})",
+    "pinned_snippets_title": "Pinned Snippets",
+    "no_pinned": "You have no pinned snippets. Pin them to see them here!",
+    "recent_snippets": "Recent Snippets",
+    "quick_actions": "Quick Actions",
+    "create_snippet": "Create Snippet",
+    "theme": "Theme",
+    "your_categories": "Your Categories",
+    "tip_title": "Productivity Tip",
+    "tip_body": "You can press <strong>Ctrl + Alt + S</strong> to invoke or hide SnapCopy immediately.",
+    "empty_title": "Welcome to SnapCopy",
+    "empty_desc": "Create your first snippet or import from the cloud. Use the <strong>New Snippet</strong> button in the top bar.",
+    "create_first_snippet": "Create first snippet"
+  },
+  "snippet": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "pin": "Pin to top",
+    "unpin": "Unpin",
+    "click_to_copy": "Click to Copy"
+  },
+  "content": {
+    "no_snippets_found": "No snippets found",
+    "try_changing_search": "Try changing the search term or create a new one.",
+    "view_folder": "View \"{{name}}\" ({{count}} snippets)",
+    "count_snippets": "{{count}} snippets",
+    "snippets_in": "Snippets in \"{{name}}\""
+  },
+  "snippet_modal": {
+    "edit_title": "Edit Snippet",
+    "add_title": "Add New Snippet",
+    "title_label": "Title",
+    "title_placeholder": "E.g. Clear npm cache, Sales Query",
+    "category_label": "Category",
+    "category_placeholder": "Select a category...",
+    "content_label": "Content / Code",
+    "content_placeholder": "Write or paste your text snippet here...",
+    "color_label": "Identification Color",
+    "folder_label": "Folder (optional)"
+  },
+  "delete_modal": {
+    "confirm_title": "Confirm Deletion",
+    "confirm_snippet": "Are you sure you want to delete this snippet?",
+    "irreversible": "This action is irreversible.",
+    "confirm_bulk": "Delete {{count}} selected snippet{{plural}}?"
+  },
+  "workspace_modal": {
+    "new_title": "New Workspace",
+    "name_label": "Workspace Name",
+    "name_placeholder": "E.g. Personal, Work, Docker",
+    "create_button": "Create Workspace"
+  },
+  "workspace_edit_modal": {
+    "title": "Customize Workspace",
+    "name_label": "Workspace Name",
+    "name_placeholder": "E.g. Personal, Work",
+    "color_label": "Identifier Color",
+    "colors": {
+      "indigo": "Indigo",
+      "emerald": "Emerald",
+      "rose": "Rose",
+      "amber": "Amber",
+      "sky": "Sky",
+      "violet": "Violet",
+      "teal": "Teal"
+    },
+    "save_changes": "Save Changes"
+  },
+  "folder_modal": {
+    "manage_title": "Manage Folder",
+    "rename_label": "Rename folder",
+    "delete_section": "Delete folder and subfolders",
+    "delete_info": "All snippets within this folder and its subfolders will be moved to \"No folder\".",
+    "delete_button": "Delete \"{{name}}\""
+  },
+  "delete_folder_modal": {
+    "title": "Delete Folder",
+    "confirm": "Delete the folder \"{{name}}\" and all its content?",
+    "info": "The snippets will be moved to \"No folder\".",
+    "delete_button": "Delete folder"
+  },
+  "delete_workspace_modal": {
+    "title": "Delete Workspace",
+    "confirm": "Delete the workspace \"{{name}}\"?",
+    "warning": "All snippets and folders contained in this workspace will be permanently deleted. This action cannot be undone.",
+    "delete_button": "Delete workspace"
+  },
+  "manage_categories_modal": {
+    "title": "Manage Categories",
+    "choose_icon": "Choose icon",
+    "new_category_placeholder": "New category...",
+    "change_icon": "Change icon",
+    "rename": "Rename",
+    "move_up": "Move up",
+    "move_down": "Move down",
+    "delete_category": "Delete category"
+  },
+  "add_folder_modal": {
+    "title": "New Folder",
+    "name_label": "Folder Name",
+    "name_placeholder": "E.g. Git, Docker, Networks...",
+    "create_button": "Create Folder"
+  },
+  "customization_modal": {
+    "title": "Customization",
+    "description": "Choose the color combination that best suits your work style:",
+    "language": "Language"
+  },
+  "tour": {
+    "welcome_title": "Welcome to SnapCopy!",
+    "welcome_desc": "We've set up a global keyboard shortcut. Use it from any Windows app to show or hide the window:",
+    "welcome_footnote": "It works globally, even with the app minimized!",
+    "create_title": "Create Snippets",
+    "create_desc": "Inside each category, use the + button in the top right to add a new snippet. You can assign a title, category, folder, and code. Snippets are saved automatically.",
+    "organize_title": "Organize with Folders",
+    "organize_desc": "Inside each category, use the ... button to create nested folders. Drag and drop snippets or folders between each other to reorganize all your content.",
+    "selection_title": "Selection and Bulk Actions",
+    "selection_desc": "You can check a snippet's box or Shift+Click on it to quickly select it. Select several at once to drag them together to a folder. A Bulk Actions Bar will also appear at the bottom to move or delete them in batch.",
+    "search_title": "Search and Explore",
+    "search_desc": "Use the search bar at the top to filter snippets instantly. Navigate categories in the sidebar and expand folders to quickly find what you need. You can also customize each category's icons from the ... button in the top bar.",
+    "cloud_title": "Cloud Sync",
+    "cloud_desc": "Your snippets automatically sync to the cloud when you sign in. You can access them from any device. Changes merge without data loss."
+  },
+  "bulk_actions": {
+    "move_to": "Move to...",
+    "delete": "Delete"
+  },
+  "update_modal": {
+    "title": "Update Ready",
+    "subtitle": "SnapCopy Desktop Engine",
+    "new_version": "New version available",
+    "release_notes": "News and changelog",
+    "downloading": "Downloading new version...",
+    "ready_text": "The update is ready to be applied.",
+    "download_install": "Download and Install",
+    "restart_install": "Restart and Install Now"
+  },
+  "uptodate_modal": {
+    "title": "SnapCopy is up to date",
+    "description": "You are using the latest version available for your system.",
+    "version_installed": "Installed version"
+  },
+  "default_snippets": {
+    "sql_title": "Active Customers Query",
+    "console_title": "Port in use (kill process)",
+    "git_title": "Git config identity",
+    "react_title": "Template - React Functional Component"
+  },
+  "languages": {
+    "es": "Spanish",
+    "en": "English"
+  }
+}

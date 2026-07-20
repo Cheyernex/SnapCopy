@@ -1,0 +1,284 @@
+{
+  "app": {
+    "name": "SnapCopy",
+    "version": "SnapCopy v{{version}}",
+    "author": "CMT DEV SOLUTIONS",
+    "email": "cmtdevsolutions@gestricon.com"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "delete": "Eliminar",
+    "rename": "Renombrar",
+    "ok": "OK",
+    "confirm": "Confirmar",
+    "yes_delete": "Sí, eliminar",
+    "got_it": "Entendido",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "start_using": "Comenzar a usar",
+    "later": "Más tarde",
+    "selected": "seleccionados",
+    "deselect_all": "Desmarcar todos",
+    "select": "Seleccionar",
+    "deselect": "Desmarcar",
+    "no_folder": "— Sin carpeta —",
+    "no_folder_label": "Sin carpeta",
+    "root_no_folder": "Raíz (Sin carpeta)",
+    "use_category_for_folders": "Usa la categoría para crear carpetas"
+  },
+  "themes": {
+    "indigo": "Índigo",
+    "midnight": "Medianoche",
+    "emerald": "Esmeralda",
+    "rose": "Rosa",
+    "amber": "Ámbar",
+    "sky": "Celeste",
+    "violet": "Violeta",
+    "slate": "Pizarra"
+  },
+  "default_categories": {
+    "sql": "SQL",
+    "console": "Consola",
+    "code": "Código",
+    "general": "General"
+  },
+  "alerts": {
+    "workspace_exists": "Ya existe un espacio de trabajo con este nombre.",
+    "workspace_name_empty": "El nombre del espacio de trabajo no puede estar vacío."
+  },
+  "toasts": {
+    "download_error": "Error al descargar: {{error}}",
+    "download_error_res": "Error de descarga: {{error}}",
+    "download_update_error": "Error al descargar actualización",
+    "update_available_exe": "Búsqueda de actualizaciones disponible en la versión ejecutable",
+    "checking_updates": "Buscando actualizaciones...",
+    "session_synced": "Sesión sincronizada — {{count}} snippet(s) cargado(s)",
+    "sync_error": "Error al sincronizar con la nube: {{error}}",
+    "auth_timeout": "Error al autenticar — tiempo de espera agotado",
+    "auth_error": "Error al iniciar sesión",
+    "session_closed": "Sesión cerrada",
+    "copied": "\"{{title}}\" copiado al portapapeles",
+    "workspace_min_one": "Debe haber al menos un espacio de trabajo.",
+    "workspace_deleted": "Espacio \"{{name}}\" eliminado",
+    "workspace_saved": "Espacio de trabajo \"{{name}}\" guardado",
+    "category_created": "Categoría \"{{name}}\" creada",
+    "category_deleted": "Categoría \"{{cat}}\" eliminada",
+    "category_renamed": "Categoría renombrada a \"{{name}}\"",
+    "folder_exists": "Ya existe una carpeta con ese nombre aquí",
+    "folder_created": "Carpeta \"{{name}}\" creada en {{cat}}{{path}}",
+    "folder_renamed": "Carpeta renombrada a \"{{name}}\"",
+    "folder_deleted": "Carpeta \"{{name}}\" eliminada",
+    "snippets_deleted": "{{count}} snippets eliminados",
+    "snippets_moved": "{{count}} snippets movidos a \"{{name}}\"",
+    "snippet_moved": "Snippet movido a \"{{name}}\"",
+    "folder_moved": "Carpeta \"{{name}}\" movida a \"{{target}}\"",
+    "snippets_moved_root": "{{count}} snippets movidos a raíz",
+    "snippet_moved_root": "Snippet movido a raíz",
+    "folder_moved_root": "Carpeta \"{{name}}\" movida a raíz"
+  },
+  "auth": {
+    "restoring_session": "Restaurando sesión...",
+    "tagline": "Guarda y organiza tus fragmentos de código, comandos y consultas",
+    "opening_google": "Abriendo Google...",
+    "sign_in_google": "Iniciar sesión con Google"
+  },
+  "sync": {
+    "syncing_data": "Sincronizando datos...",
+    "loading_content": "Cargando tus workspaces, carpetas y configuración"
+  },
+  "signout": {
+    "signing_out": "Cerrando sesión...",
+    "saving_changes": "Guardando cambios y desconectando"
+  },
+  "sidebar": {
+    "collapse": "Colapsar barra lateral",
+    "expand": "Expandir barra lateral",
+    "current_workspace": "Espacio actual: {{name}}",
+    "customize_workspace": "Personalizar Espacio",
+    "delete_workspace": "Eliminar Espacio",
+    "create_workspace": "Crear Workspace...",
+    "create": "Crear...",
+    "home": "Inicio",
+    "categories": "Categorías",
+    "manage_categories": "Gestionar categorías",
+    "new_folder": "Nueva Carpeta",
+    "about": "Acerca de"
+  },
+  "header": {
+    "search_placeholder": "Buscar por título, comandos, código...",
+    "showing_snippets": "Mostrando {{count}} de {{total}} snippets",
+    "customization": "Personalización",
+    "show_tour": "Mostrar tour de inicio",
+    "grid_view": "Vista de cuadrícula",
+    "list_view": "Vista de lista compacta",
+    "syncing_cloud": "Sincronizando cambios con la nube...",
+    "synced_cloud": "Sincronizado con Supabase",
+    "syncing_badge": "Sincronizando",
+    "cloud_badge": "En la nube",
+    "check_updates": "Buscar actualizaciones",
+    "sign_out": "Cerrar sesión"
+  },
+  "breadcrumb": {
+    "home": "Inicio"
+  },
+  "dashboard": {
+    "greeting": "¡Hola, {{name}}!",
+    "welcome_back": "Bienvenido de nuevo a tu panel de <strong>SnapCopy</strong>. ¿Qué vamos a guardar o reutilizar hoy?",
+    "total_snippets": "Total Snippets",
+    "pinned": "Fijados",
+    "categories": "Categorías",
+    "folders": "Carpetas",
+    "pinned_snippets": "Snippets Fijados ({{count}})",
+    "pinned_snippets_title": "Snippets Fijados",
+    "no_pinned": "No tienes snippets fijados. ¡Fíjalos para verlos aquí!",
+    "recent_snippets": "Snippets Recientes",
+    "quick_actions": "Acciones Rápidas",
+    "create_snippet": "Crear Snippet",
+    "theme": "Tema",
+    "your_categories": "Tus Categorías",
+    "tip_title": "Consejo de Productividad",
+    "tip_body": "Puedes presionar <strong>Ctrl + Alt + S</strong> para invocar u ocultar SnapCopy de inmediato.",
+    "empty_title": "Bienvenido a SnapCopy",
+    "empty_desc": "Crea tu primer snippet o importa desde la nube para empezar. Usa el botón <strong>Nuevo Snippet</strong> en la barra superior.",
+    "create_first_snippet": "Crear primer snippet"
+  },
+  "snippet": {
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "pin": "Fijar al inicio",
+    "unpin": "Desfijar",
+    "click_to_copy": "Click para Copiar"
+  },
+  "content": {
+    "no_snippets_found": "No se encontraron snippets",
+    "try_changing_search": "Intenta cambiar el término de búsqueda o crea uno nuevo.",
+    "view_folder": "Ver \"{{name}}\" ({{count}} snippets)",
+    "count_snippets": "{{count}} snippets",
+    "snippets_in": "Snippets en \"{{name}}\""
+  },
+  "snippet_modal": {
+    "edit_title": "Editar Snippet",
+    "add_title": "Agregar Nuevo Snippet",
+    "title_label": "Título",
+    "title_placeholder": "Ej. Limpiar caché npm, Consulta de Ventas",
+    "category_label": "Categoría",
+    "category_placeholder": "Selecciona una categoría...",
+    "content_label": "Contenido / Código",
+    "content_placeholder": "Escribe o pega aquí tu fragmento de texto...",
+    "color_label": "Color de Identificación",
+    "folder_label": "Carpeta (opcional)"
+  },
+  "delete_modal": {
+    "confirm_title": "Confirmar Eliminación",
+    "confirm_snippet": "¿Estás seguro de que deseas eliminar este snippet?",
+    "irreversible": "Esta acción es irreversible.",
+    "confirm_bulk": "¿Eliminar {{count}} snippet{{plural}} seleccionado{{plural}}?"
+  },
+  "workspace_modal": {
+    "new_title": "Nuevo Espacio de Trabajo",
+    "name_label": "Nombre del Espacio",
+    "name_placeholder": "Ej. Personal, Trabajo, Docker",
+    "create_button": "Crear Espacio"
+  },
+  "workspace_edit_modal": {
+    "title": "Personalizar Espacio",
+    "name_label": "Nombre del Espacio",
+    "name_placeholder": "Ej. Personal, Trabajo",
+    "color_label": "Color Identificador",
+    "colors": {
+      "indigo": "Índigo",
+      "emerald": "Esmeralda",
+      "rose": "Rosa",
+      "amber": "Ámbar",
+      "sky": "Cielo",
+      "violet": "Violeta",
+      "teal": "Teal"
+    },
+    "save_changes": "Guardar Cambios"
+  },
+  "folder_modal": {
+    "manage_title": "Gestionar Carpeta",
+    "rename_label": "Renombrar carpeta",
+    "delete_section": "Eliminar carpeta y subcarpetas",
+    "delete_info": "Todos los snippets dentro de esta carpeta y sus subcarpetas se moverán a \"Sin carpeta\".",
+    "delete_button": "Eliminar \"{{name}}\""
+  },
+  "delete_folder_modal": {
+    "title": "Eliminar Carpeta",
+    "confirm": "¿Eliminar la carpeta \"{{name}}\" y todo su contenido?",
+    "info": "Los snippets se moverán a \"Sin carpeta\".",
+    "delete_button": "Eliminar carpeta"
+  },
+  "delete_workspace_modal": {
+    "title": "Eliminar Espacio",
+    "confirm": "¿Eliminar el espacio de trabajo \"{{name}}\"?",
+    "warning": "Se eliminarán permanentemente todos los snippets y carpetas contenidos en este espacio. Esta acción no se puede deshacer.",
+    "delete_button": "Eliminar espacio"
+  },
+  "manage_categories_modal": {
+    "title": "Gestionar Categorías",
+    "choose_icon": "Elegir icono",
+    "new_category_placeholder": "Nueva categoría...",
+    "change_icon": "Cambiar icono",
+    "rename": "Renombrar",
+    "move_up": "Mover arriba",
+    "move_down": "Mover abajo",
+    "delete_category": "Eliminar categoría"
+  },
+  "add_folder_modal": {
+    "title": "Nueva Carpeta",
+    "name_label": "Nombre de la Carpeta",
+    "name_placeholder": "Ej. Git, Docker, Redes...",
+    "create_button": "Crear Carpeta"
+  },
+  "customization_modal": {
+    "title": "Personalización",
+    "description": "Elige la combinación de color que mejor se adapte a tu estilo de trabajo:",
+    "language": "Idioma / Language"
+  },
+  "tour": {
+    "welcome_title": "¡Bienvenido a SnapCopy!",
+    "welcome_desc": "Hemos configurado un atajo de teclado global. Úsalo desde cualquier aplicación en Windows para mostrar u ocultar la ventana:",
+    "welcome_footnote": "¡Funciona de forma global, incluso con la app minimizada!",
+    "create_title": "Crear Snippets",
+    "create_desc": "Dentro de cada categoría, usa el botón + que aparece en la parte superior derecha para agregar un nuevo snippet. Puedes asignarle un título, categoría, carpeta y código. Los snippets se guardan automáticamente.",
+    "organize_title": "Organizar con Carpetas",
+    "organize_desc": "Dentro de cada categoría, usa el botón ... para crear carpetas anidadas. Arrastra y suelta snippets o carpetas entre sí para reorganizar todo tu contenido.",
+    "selection_title": "Selección y Acciones Múltiples",
+    "selection_desc": "Puedes marcar la casilla de un snippet o hacer Shift + Click sobre él para seleccionarlo rápidamente. Selecciona varios a la vez para arrastrarlos juntos a una carpeta. También aparecerá una Barra de Acciones Masivas en la parte inferior para moverlos o eliminarlos en lote.",
+    "search_title": "Buscar y Explorar",
+    "search_desc": "Usa la barra de búsqueda en la parte superior para filtrar snippets al instante. Navega por categorías en la barra lateral y expande las carpetas para encontrar lo que necesitas rápidamente. También puedes personalizar los iconos de cada categoría desde el botón ... en la barra superior.",
+    "cloud_title": "Sincronización en la Nube",
+    "cloud_desc": "Tus snippets se sincronizan automáticamente con la nube al iniciar sesión. Puedes acceder a ellos desde cualquier dispositivo. Los cambios se fusionan sin perder información."
+  },
+  "bulk_actions": {
+    "move_to": "Mover a...",
+    "delete": "Eliminar"
+  },
+  "update_modal": {
+    "title": "Actualización Lista",
+    "subtitle": "SnapCopy Desktop Engine",
+    "new_version": "Nueva versión disponible",
+    "release_notes": "Novedades e historia de cambios",
+    "downloading": "Descargando nueva versión...",
+    "ready_text": "La actualización está lista para ser aplicada.",
+    "download_install": "Descargar e Instalar",
+    "restart_install": "Reiniciar e Instalar Ahora"
+  },
+  "uptodate_modal": {
+    "title": "SnapCopy está al día",
+    "description": "Estás utilizando la versión más reciente disponible para tu sistema.",
+    "version_installed": "Versión instalada"
+  },
+  "default_snippets": {
+    "sql_title": "Consulta de Clientes Activos",
+    "console_title": "Puerto en uso (kill process)",
+    "git_title": "Git config identity",
+    "react_title": "Template - React Functional Component"
+  },
+  "languages": {
+    "es": "Español",
+    "en": "English"
+  }
+}

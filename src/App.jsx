@@ -98,8 +98,10 @@ import {
   Info
 } from 'lucide-react';
 import { createSupabaseClient, getSupabase, isConfigured, onAuthStateChange, fetchCloudSnippets, saveCloudSnippet, deleteCloudSnippet, deleteCloudSnippetsByWorkspace, fetchUserSettings, saveUserSettings } from './supabase';
+import { useTranslation, Trans } from 'react-i18next';
 
 export default function App() {
+  const { t, i18n } = useTranslation();
   const [snippets, setSnippets] = useState([]);
   const [selectedSnippetIds, setSelectedSnippetIds] = useState([]);
   const [activeCategory, setActiveCategory] = useState('General');
@@ -183,6 +185,21 @@ export default function App() {
   const [isThemePanelOpen, setIsThemePanelOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('snapcopy_theme') || 'indigo');
 
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState(null);
+
+  // Close context menu on click or scroll
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [contextMenu]);
+
   // Auto-Updater states
   const [updateAvailable, setUpdateAvailable] = useState(null);
   const [downloadProgress, setDownloadProgress] = useState(null);
@@ -218,7 +235,7 @@ export default function App() {
     if (window.electronAPI.onUpdateError) {
       window.electronAPI.onUpdateError((err) => {
         setIsDownloadingUpdate(false);
-        addToast(`Error al descargar: ${err}`);
+        addToast(t('toasts.download_error', { error: err }));
       });
     }
   }, []);
@@ -230,11 +247,11 @@ export default function App() {
       const res = await window.electronAPI.downloadUpdate();
       if (res && res.error) {
         setIsDownloadingUpdate(false);
-        addToast(`Error de descarga: ${res.error}`);
+        addToast(t('toasts.download_error_res', { error: res.error }));
       }
     } catch (err) {
       setIsDownloadingUpdate(false);
-      addToast('Error al descargar actualización');
+      addToast(t('toasts.download_update_error'));
     }
   };
 
@@ -247,10 +264,10 @@ export default function App() {
   const handleManualCheckUpdate = async () => {
     setProfileMenuOpen(false);
     if (!window.electronAPI || !window.electronAPI.checkForUpdates) {
-      addToast('Búsqueda de actualizaciones disponible en la versión ejecutable');
+      addToast(t('toasts.update_available_exe'));
       return;
     }
-    addToast('Buscando actualizaciones...');
+    addToast(t('toasts.checking_updates'));
     const res = await window.electronAPI.checkForUpdates();
     if (res && (res.status === 'dev' || res.error || !res.updateInfo)) {
       setIsNoUpdateModalOpen(true);
@@ -364,7 +381,7 @@ export default function App() {
 
   const themes = {
     indigo: {
-      name: 'Índigo',
+      name: t('themes.indigo'),
       primary: '#6366f1', primaryHover: '#4f46e5',
       bgMain: '#0b0f19', bgSidebar: '#0f172a', bgCard: 'rgba(30, 41, 59, 0.4)', bgCardHover: 'rgba(30, 41, 59, 0.6)', bgInput: '#1e293b',
       border: 'rgba(255, 255, 255, 0.06)', borderHover: 'rgba(255, 255, 255, 0.12)',
@@ -372,7 +389,7 @@ export default function App() {
       success: '#10b981', danger: '#ef4444', warning: '#f59e0b', info: '#06b6d4',
     },
     midnight: {
-      name: 'Medianoche',
+      name: t('themes.midnight'),
       primary: '#818cf8', primaryHover: '#6366f1',
       bgMain: '#020617', bgSidebar: '#0a0f1e', bgCard: 'rgba(30, 41, 80, 0.4)', bgCardHover: 'rgba(30, 41, 80, 0.6)', bgInput: '#1a1f35',
       border: 'rgba(255, 255, 255, 0.05)', borderHover: 'rgba(255, 255, 255, 0.10)',
@@ -380,7 +397,7 @@ export default function App() {
       success: '#34d399', danger: '#fb7185', warning: '#fbbf24', info: '#38bdf8',
     },
     emerald: {
-      name: 'Esmeralda',
+      name: t('themes.emerald'),
       primary: '#10b981', primaryHover: '#059669',
       bgMain: '#0a1410', bgSidebar: '#0f1d16', bgCard: 'rgba(16, 185, 129, 0.08)', bgCardHover: 'rgba(16, 185, 129, 0.12)', bgInput: '#1a2e24',
       border: 'rgba(16, 185, 129, 0.1)', borderHover: 'rgba(16, 185, 129, 0.2)',
@@ -388,7 +405,7 @@ export default function App() {
       success: '#34d399', danger: '#f43f5e', warning: '#f59e0b', info: '#22d3ee',
     },
     rose: {
-      name: 'Rosa',
+      name: t('themes.rose'),
       primary: '#f43f5e', primaryHover: '#e11d48',
       bgMain: '#140a0c', bgSidebar: '#1f1114', bgCard: 'rgba(244, 63, 94, 0.08)', bgCardHover: 'rgba(244, 63, 94, 0.12)', bgInput: '#2a1a1e',
       border: 'rgba(244, 63, 94, 0.1)', borderHover: 'rgba(244, 63, 94, 0.2)',
@@ -396,7 +413,7 @@ export default function App() {
       success: '#10b981', danger: '#ef4444', warning: '#f59e0b', info: '#06b6d4',
     },
     amber: {
-      name: 'Ámbar',
+      name: t('themes.amber'),
       primary: '#f59e0b', primaryHover: '#d97706',
       bgMain: '#141008', bgSidebar: '#1f1a0f', bgCard: 'rgba(245, 158, 11, 0.08)', bgCardHover: 'rgba(245, 158, 11, 0.12)', bgInput: '#2a2416',
       border: 'rgba(245, 158, 11, 0.1)', borderHover: 'rgba(245, 158, 11, 0.2)',
@@ -404,7 +421,7 @@ export default function App() {
       success: '#10b981', danger: '#ef4444', warning: '#f59e0b', info: '#0ea5e9',
     },
     sky: {
-      name: 'Celeste',
+      name: t('themes.sky'),
       primary: '#0ea5e9', primaryHover: '#0284c7',
       bgMain: '#080f14', bgSidebar: '#0e1a22', bgCard: 'rgba(14, 165, 233, 0.08)', bgCardHover: 'rgba(14, 165, 233, 0.12)', bgInput: '#162a36',
       border: 'rgba(14, 165, 233, 0.1)', borderHover: 'rgba(14, 165, 233, 0.2)',
@@ -412,7 +429,7 @@ export default function App() {
       success: '#10b981', danger: '#f43f5e', warning: '#f59e0b', info: '#06b6d4',
     },
     violet: {
-      name: 'Violeta',
+      name: t('themes.violet'),
       primary: '#8b5cf6', primaryHover: '#7c3aed',
       bgMain: '#0d0a18', bgSidebar: '#151024', bgCard: 'rgba(139, 92, 246, 0.08)', bgCardHover: 'rgba(139, 92, 246, 0.12)', bgInput: '#1e1834',
       border: 'rgba(139, 92, 246, 0.1)', borderHover: 'rgba(139, 92, 246, 0.2)',
@@ -420,7 +437,7 @@ export default function App() {
       success: '#34d399', danger: '#fb7185', warning: '#fbbf24', info: '#38bdf8',
     },
     slate: {
-      name: 'Pizarra',
+      name: t('themes.slate'),
       primary: '#64748b', primaryHover: '#475569',
       bgMain: '#0a0c10', bgSidebar: '#0f1219', bgCard: 'rgba(100, 116, 139, 0.08)', bgCardHover: 'rgba(100, 116, 139, 0.12)', bgInput: '#1a1e26',
       border: 'rgba(255, 255, 255, 0.05)', borderHover: 'rgba(255, 255, 255, 0.10)',
@@ -601,12 +618,12 @@ export default function App() {
       setTheme(activeTheme);
 
       if (showFullOverlay) {
-        addToast(`Sesión sincronizada — ${merged.snippets.length} snippet(s) cargado(s)`);
+        addToast(t('toasts.session_synced', { count: merged.snippets.length }));
       }
     } catch (err) {
       console.error('Sync failed with error:', err);
       if (showFullOverlay) {
-        addToast(`Error al sincronizar con la nube: ${err.message || err}`);
+        addToast(t('toasts.sync_error', { error: err.message || err }));
       }
     } finally {
       isSyncingRef.current = false;
@@ -666,7 +683,7 @@ export default function App() {
     });
     setSelectedSnippetIds([]);
     setIsBulkDeleteModalOpen(false);
-    addToast(`${count} snippets eliminados`);
+    addToast(t('toasts.snippets_deleted', { count }));
   };
 
   // Sign in via system browser (bypasses Google blocking embedded browser)
@@ -700,7 +717,7 @@ export default function App() {
           setSigningIn(false);
         } catch (err) {
           setSigningIn(false);
-          addToast('Error al autenticar — tiempo de espera agotado');
+          addToast(t('toasts.auth_timeout'));
           return;
         }
       } else {
@@ -710,7 +727,7 @@ export default function App() {
     } catch (err) {
       setSigningIn(false);
       console.error('Sign in failed:', err);
-      addToast('Error al iniciar sesión');
+      addToast(t('toasts.auth_error'));
     }
   };
 
@@ -736,7 +753,7 @@ export default function App() {
     setIsHomeView(true);
     setActiveCategory('General');
     setActiveFolder(null);
-    addToast('Sesión cerrada');
+    addToast(t('toasts.session_closed'));
   };
 
   // Get unique folders within a given category for current workspace
@@ -1033,7 +1050,7 @@ export default function App() {
 
     // Trigger Toast Notification
     const toastId = Date.now().toString();
-    const newToast = { id: toastId, message: `"${title}" copiado al portapapeles` };
+    const newToast = { id: toastId, message: t('toasts.copied', { title }) };
     setToasts(prev => [...prev, newToast]);
 
     // Remove toast after 3 seconds
@@ -1169,7 +1186,7 @@ export default function App() {
     if (!name) return;
 
     if (workspaces.includes(name)) {
-      alert('Ya existe un espacio de trabajo con este nombre.');
+      alert(t('alerts.workspace_exists'));
       return;
     }
 
@@ -1195,7 +1212,7 @@ export default function App() {
     const folderPath = activeFolder ? `${activeFolder}/${name}` : name;
     const existing = getFoldersForCategory(cat);
     if (existing.includes(folderPath)) {
-      addToast('Ya existe una carpeta con ese nombre aquí');
+      addToast(t('toasts.folder_exists'));
       return;
     }
     const workspaceFolders = folders[currentWorkspace] || {};
@@ -1217,13 +1234,13 @@ export default function App() {
       return s;
     });
     await saveSnippetsData(snippets, workspaces, currentWorkspace, updatedFolders);
-    addToast(`Carpeta "${getFolderName(folderPath)}" creada en ${cat}${activeFolder ? ' / ' + activeFolder : ''}`);
+    addToast(t('toasts.folder_created', { name: getFolderName(folderPath), cat, path: activeFolder ? ' / ' + activeFolder : '' }));
   };
 
   // Delete workspace handler
   const handleDeleteWorkspace = (workspaceName) => {
     if (workspaces.length <= 1) {
-      addToast('Debe haber al menos un espacio de trabajo.');
+      addToast(t('toasts.workspace_min_one'));
       return;
     }
     setWorkspaceToDelete(workspaceName);
@@ -1254,7 +1271,7 @@ export default function App() {
     setWorkspaceToDelete('');
     setActiveCategory('General');
     setActiveFolder(null);
-    addToast(`Espacio "${nameToDelete}" eliminado`);
+    addToast(t('toasts.workspace_deleted', { name: nameToDelete }));
   };
 
   // Open Edit Workspace Modal
@@ -1273,12 +1290,12 @@ export default function App() {
     const color = editWorkspaceColor;
 
     if (!newName) {
-      alert('El nombre del espacio de trabajo no puede estar vacío.');
+      alert(t('alerts.workspace_name_empty'));
       return;
     }
 
     if (newName !== oldName && workspaces.includes(newName)) {
-      alert('Ya existe un espacio de trabajo con este nombre.');
+      alert(t('alerts.workspace_exists'));
       return;
     }
 
@@ -1330,7 +1347,7 @@ export default function App() {
     });
 
     setIsEditWorkspaceModalOpen(false);
-    addToast(`Espacio de trabajo "${newName}" guardado`);
+    addToast(t('toasts.workspace_saved', { name: newName }));
   };
 
   // Get active color value for workspaces
@@ -1382,7 +1399,7 @@ export default function App() {
     setNewCategoryName('');
     setSelectedCategoryIcon('Code');
     await saveSnippetsData(snippets, workspaces, currentWorkspace, folders, workspaceColors, workspaceThemes, updatedOrder, updatedIcons);
-    addToast(`Categoría "${name}" creada`);
+    addToast(t('toasts.category_created', { name }));
   };
 
   const handleDeleteCategory = async (cat) => {
@@ -1396,7 +1413,7 @@ export default function App() {
       const toSync = affected.filter(s => originalCatIds.has(s.id));
       await Promise.all(toSync.map(s => saveCloudSnippet(s)));
     });
-    addToast(`Categoría "${cat}" eliminada`);
+    addToast(t('toasts.category_deleted', { cat }));
   };
 
   const handleMoveCategory = async (cat, direction) => {
@@ -1430,7 +1447,7 @@ export default function App() {
       await Promise.all(toSync.map(s => saveCloudSnippet(s)));
     });
     setEditingCategory(null);
-    addToast(`Categoría renombrada a "${newName}"`);
+    addToast(t('toasts.category_renamed', { name: newName }));
   };
 
   // Icon picker map
@@ -1488,6 +1505,24 @@ export default function App() {
     if (!a.pinned && b.pinned) return 1;
     return b.id.localeCompare(a.id);
   });
+
+  // Shift + A: select/deselect all visible snippets
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key.toLowerCase() === 'a' && e.shiftKey) {
+        const tag = e.target.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+        e.preventDefault();
+        setSelectedSnippetIds(prev => {
+          const visible = sortedSnippets.map(s => s.id);
+          const allSelected = visible.every(id => prev.includes(id));
+          return allSelected ? [] : visible;
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [sortedSnippets]);
 
   // Helper: get total snippet count for a folder (handles Home view multi-category structure)
   const getFolderSnippetCount = (folder) => {
@@ -1598,7 +1633,7 @@ export default function App() {
       });
       setSelectedSnippetIds([]);
       setDraggedSnippetId(null);
-      addToast(`${ids.length} snippets movidos a "${getFolderName(targetFolder)}"`);
+      addToast(t('toasts.snippets_moved', { count: ids.length, name: getFolderName(targetFolder) }));
     } else if (raw.startsWith('snip:')) {
       // Dropping a single snippet
       const snippetId = raw.slice(5);
@@ -1614,7 +1649,7 @@ export default function App() {
         if (moved) await saveCloudSnippet(moved);
       });
       setDraggedSnippetId(null);
-      addToast(`Snippet movido a "${getFolderName(targetFolder)}"`);
+      addToast(t('toasts.snippet_moved', { name: getFolderName(targetFolder) }));
     } else if (raw.startsWith('folder:')) {
       // Dropping a folder into another folder
       const draggedPath = raw.slice(7);
@@ -1661,7 +1696,7 @@ export default function App() {
       setIsFolderDragged(false);
       // Navigate to parent so user sees the result
       setActiveFolder(targetFolder);
-      addToast(`Carpeta "${draggedName}" movida a "${getFolderName(targetFolder)}"`);
+      addToast(t('toasts.folder_moved', { name: draggedName, target: getFolderName(targetFolder) }));
     }
   };
 
@@ -1685,7 +1720,7 @@ export default function App() {
       });
       setSelectedSnippetIds([]);
       setDraggedSnippetId(null);
-      addToast(`${ids.length} snippets movidos a raíz`);
+      addToast(t('toasts.snippets_moved_root', { count: ids.length }));
     } else if (raw.startsWith('snip:')) {
       const snippetId = raw.slice(5);
       const snippet = snippets.find(s => s.id === snippetId);
@@ -1699,7 +1734,7 @@ export default function App() {
         if (moved) await saveCloudSnippet(moved);
       });
       setDraggedSnippetId(null);
-      addToast('Snippet movido a raíz');
+      addToast(t('toasts.snippet_moved_root'));
     } else if (raw.startsWith('folder:')) {
       const draggedPath = raw.slice(7);
       const cat = activeCategory;
@@ -1736,7 +1771,7 @@ export default function App() {
       setDraggedSnippetId(null);
       setIsFolderDragged(false);
       setActiveFolder(null);
-      addToast(`Carpeta "${draggedName}" movida a raíz`);
+      addToast(t('toasts.folder_moved_root', { name: draggedName }));
     }
   };
 
@@ -1787,7 +1822,7 @@ export default function App() {
       setActiveFolder(newActive);
     }
     setIsFolderSettingsOpen(false);
-    addToast(`Carpeta renombrada a "${newBaseName}"`);
+    addToast(t('toasts.folder_renamed', { name: newBaseName }));
   };
 
   const handleDeleteFolder = async () => {
@@ -1826,7 +1861,7 @@ export default function App() {
     });
     setIsFolderSettingsOpen(false);
     setActiveFolder(getParentPath(folderPath));
-    addToast(`Carpeta "${getFolderName(folderPath)}" eliminada`);
+    addToast(t('toasts.folder_deleted', { name: getFolderName(folderPath) }));
   };
 
   // Recursive folder tree renderer for sidebar
@@ -1841,6 +1876,28 @@ export default function App() {
           <div
             className={`folder-item ${activeCategory === cat && activeFolder === folder ? 'active' : ''}`}
             onClick={() => { setActiveCategory(cat); setActiveFolder(folder); }}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setContextMenu({
+                x: e.clientX, y: e.clientY,
+                items: [
+                  {
+                    label: t('folder_modal.manage_title'), icon: 'Settings',
+                    action: () => { setActiveCategory(cat); setActiveFolder(folder); openFolderSettings(folder); }
+                  },
+                  {
+                    label: t('delete_folder_modal.title'), icon: 'Trash2',
+                    action: () => {
+                      setActiveCategory(cat); setActiveFolder(folder);
+                      setFolderSettingsCategory(cat); setFolderSettingsName(folder);
+                      setIsDeleteFolderConfirmOpen(true);
+                    },
+                    danger: true
+                  },
+                ]
+              });
+            }}
             draggable={false}
             style={{ paddingLeft: parentPath === null ? '8px' : '20px' }}
           >
@@ -1889,10 +1946,10 @@ export default function App() {
           boxSizing: 'border-box'
         }}>
           <h2 className="welcome-banner-title" style={{ fontSize: '1.4rem', marginBottom: '2px', lineHeight: 1.2 }}>
-            ¡Hola, {user?.user_metadata?.full_name?.split(' ')[0] || user?.user_metadata?.name || 'Creador'}!
+            {t('dashboard.greeting', { name: user?.user_metadata?.full_name?.split(' ')[0] || user?.user_metadata?.name || 'Creador' })}
           </h2>
           <p className="welcome-banner-subtitle" style={{ fontSize: '0.85rem', margin: 0, lineHeight: 1.2 }}>
-            Bienvenido de nuevo a tu panel de <strong>SnapCopy</strong>. ¿Qué vamos a guardar o reutilizar hoy?
+            <Trans i18nKey="dashboard.welcome_back" components={{ strong: <strong /> }} />
           </p>
         </div>
 
@@ -1901,7 +1958,7 @@ export default function App() {
           <div className="dashboard-stat-card" style={{ height: '90px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div className="dashboard-stat-info">
               <span className="dashboard-stat-number" style={{ fontSize: '1.6rem', lineHeight: 1 }}>{workspaceSnippets.length}</span>
-              <span className="dashboard-stat-label" style={{ fontSize: '0.72rem', marginTop: '2px' }}>Total Snippets</span>
+              <span className="dashboard-stat-label" style={{ fontSize: '0.72rem', marginTop: '2px' }}>{t('dashboard.total_snippets')}</span>
             </div>
             <div className="dashboard-stat-icon-wrap" style={{ width: '38px', height: '38px' }}>
               <FileText size={18} />
@@ -1910,7 +1967,7 @@ export default function App() {
           <div className="dashboard-stat-card" style={{ height: '90px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxSizing: 'border-box' }}>
             <div className="dashboard-stat-info">
               <span className="dashboard-stat-number" style={{ fontSize: '1.6rem', lineHeight: 1 }}>{_pinnedSnippets.length}</span>
-              <span className="dashboard-stat-label" style={{ fontSize: '0.72rem', marginTop: '2px' }}>Fijados</span>
+              <span className="dashboard-stat-label" style={{ fontSize: '0.72rem', marginTop: '2px' }}>{t('dashboard.pinned')}</span>
             </div>
             <div className="dashboard-stat-icon-wrap" style={{ width: '38px', height: '38px' }}>
               <Star size={18} />
@@ -1921,7 +1978,7 @@ export default function App() {
               <span className="dashboard-stat-number" style={{ fontSize: '1.6rem', lineHeight: 1 }}>
                 {allCategories.filter(cat => workspaceSnippets.some(s => s.category === cat) || orderedCategories.includes(cat)).length}
               </span>
-              <span className="dashboard-stat-label" style={{ fontSize: '0.72rem', marginTop: '2px' }}>Categorías</span>
+              <span className="dashboard-stat-label" style={{ fontSize: '0.72rem', marginTop: '2px' }}>{t('dashboard.categories')}</span>
             </div>
             <div className="dashboard-stat-icon-wrap" style={{ width: '38px', height: '38px' }}>
               <LayoutGrid size={18} />
@@ -1932,7 +1989,7 @@ export default function App() {
               <span className="dashboard-stat-number" style={{ fontSize: '1.6rem', lineHeight: 1 }}>
                 {allCategories.reduce((acc, cat) => acc + getFoldersForCategory(cat).length, 0)}
               </span>
-              <span className="dashboard-stat-label" style={{ fontSize: '0.72rem', marginTop: '2px' }}>Carpetas</span>
+              <span className="dashboard-stat-label" style={{ fontSize: '0.72rem', marginTop: '2px' }}>{t('dashboard.folders')}</span>
             </div>
             <div className="dashboard-stat-icon-wrap" style={{ width: '38px', height: '38px' }}>
               <FolderIcon size={18} />
@@ -1950,7 +2007,7 @@ export default function App() {
                 <div className="dashboard-section-header" style={{ marginBottom: '8px', paddingBottom: '6px' }}>
                   <h3 className="dashboard-section-title" style={{ fontSize: '0.85rem' }}>
                     <Star size={14} style={{ color: 'var(--color-warning)', fill: 'var(--color-warning)' }} />
-                    Snippets Fijados ({_pinnedSnippets.length})
+                    {t('dashboard.pinned_snippets', { count: _pinnedSnippets.length })}
                   </h3>
                 </div>
                 <div className="snippets-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
@@ -1963,7 +2020,7 @@ export default function App() {
                 <div className="dashboard-section-header" style={{ marginBottom: '8px', paddingBottom: '6px' }}>
                   <h3 className="dashboard-section-title" style={{ fontSize: '0.85rem' }}>
                     <Star size={14} style={{ color: 'var(--text-muted)' }} />
-                    Snippets Fijados
+                    {t('dashboard.pinned_snippets_title')}
                   </h3>
                 </div>
                 <div style={{
@@ -1975,7 +2032,7 @@ export default function App() {
                   color: 'var(--text-muted)',
                   fontSize: '0.75rem'
                 }}>
-                  No tienes snippets fijados. ¡Fíjalos para verlos aquí!
+                  {t('dashboard.no_pinned')}
                 </div>
               </div>
             )}
@@ -1986,7 +2043,7 @@ export default function App() {
                 <div className="dashboard-section-header" style={{ marginBottom: '8px', paddingBottom: '6px' }}>
                   <h3 className="dashboard-section-title" style={{ fontSize: '0.85rem' }}>
                     <Clock size={14} style={{ color: 'var(--color-info)' }} />
-                    Snippets Recientes
+                    {t('dashboard.recent_snippets')}
                   </h3>
                 </div>
                 <div className="snippets-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '10px' }}>
@@ -2005,7 +2062,7 @@ export default function App() {
             }}>
               <div style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Zap size={14} style={{ color: 'var(--color-warning)' }} />
-                <span>Acciones Rápidas</span>
+                <span>{t('dashboard.quick_actions')}</span>
               </div>
               <div style={{
                 display: 'grid',
@@ -2025,7 +2082,7 @@ export default function App() {
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                 >
                   <Plus size={14} style={{ color: 'var(--color-primary)' }} />
-                  <span>Crear Snippet</span>
+                  <span>{t('dashboard.create_snippet')}</span>
                 </button>
                 <button
                   onClick={() => { setIsCategoryManageOpen(true); }}
@@ -2040,7 +2097,7 @@ export default function App() {
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                 >
                   <Settings size={14} style={{ color: 'var(--color-success)' }} />
-                  <span>Categorías</span>
+                  <span>{t('dashboard.categories')}</span>
                 </button>
                 <button
                   onClick={() => setIsThemePanelOpen(true)}
@@ -2055,7 +2112,7 @@ export default function App() {
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
                 >
                   <Palette size={14} style={{ color: 'var(--color-info)' }} />
-                  <span>Tema</span>
+                  <span>{t('dashboard.theme')}</span>
                 </button>
               </div>
             </div>
@@ -2069,7 +2126,7 @@ export default function App() {
                 <div className="dashboard-section-header" style={{ marginBottom: '10px' }}>
                   <h3 className="dashboard-section-title" style={{ fontSize: '0.85rem' }}>
                     <LayoutGrid size={14} style={{ color: 'var(--color-primary)' }} />
-                    Tus Categorías
+                    {t('dashboard.your_categories')}
                   </h3>
                 </div>
                 <div style={{
@@ -2078,7 +2135,8 @@ export default function App() {
                   gap: '8px',
                   maxHeight: '240px',
                   overflowY: 'auto',
-                  paddingRight: '4px'
+                  paddingRight: '4px',
+                  paddingTop: '4px'
                 }}>
                   {_categoryStats.map(({ cat, total, pinned, folders }) => (
                     <div
@@ -2139,10 +2197,10 @@ export default function App() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--color-primary)', fontWeight: 600, fontSize: '0.9rem' }}>
                 <Lightbulb size={16} />
-                <span>Consejo de Productividad</span>
+                <span>{t('dashboard.tip_title')}</span>
               </div>
               <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                Puedes presionar <strong style={{ color: 'var(--text-primary)' }}>Ctrl + Alt + S</strong> para invocar o ocultar SnapCopy de inmediato.
+                <Trans i18nKey="dashboard.tip_body" components={{ strong: <strong style={{ color: 'var(--text-primary)' }} /> }} />
               </p>
             </div>
           </div>
@@ -2152,15 +2210,15 @@ export default function App() {
         {workspaceSnippets.length === 0 && (
           <div className="empty-state" style={{ padding: '60px 20px', textAlign: 'center' }}>
             <FileText className="empty-icon" style={{ marginBottom: '16px' }} />
-            <p className="empty-title" style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Bienvenido a SnapCopy</p>
-            <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto 24px' }}>Crea tu primer snippet o importa desde la nube para empezar. Usa el botón <strong>Nuevo Snippet</strong> en la barra superior.</p>
+            <p className="empty-title" style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>{t('dashboard.empty_title')}</p>
+            <p style={{ color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto 24px' }}><Trans i18nKey="dashboard.empty_desc" components={{ strong: <strong /> }} /></p>
             <button
               onClick={handleOpenAdd}
               className="btn-primary"
               style={{ padding: '12px 24px', fontSize: '0.9rem' }}
             >
               <Plus size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-              Crear primer snippet
+              {t('dashboard.create_first_snippet')}
             </button>
           </div>
         )}
@@ -2187,10 +2245,24 @@ export default function App() {
             handleCopy(e, snippet.content, snippet.title);
           }
         }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setContextMenu({
+            x: e.clientX, y: e.clientY,
+            items: [
+              { label: t('snippet.edit'), icon: 'Edit3', action: () => handleOpenEdit(e, snippet) },
+              { label: snippet.pinned ? t('snippet.unpin') : t('snippet.pin'), icon: 'Pin', action: () => handleTogglePin(e, snippet.id) },
+              { label: t('snippet.delete'), icon: 'Trash2', action: () => handleOpenDelete(e, snippet), danger: true },
+            ]
+          });
+        }}
         style={{
-          borderLeft: snippet.pinned ? '4px solid var(--color-warning)' : (isSelected ? '4px solid var(--color-primary)' : '1px solid var(--border)'),
+          borderLeft: snippet.pinned ? '4px solid var(--color-warning)' : (isSelected ? '4px solid var(--color-primary)' : '4px solid var(--border-hover)'),
+          borderTop: '1px solid var(--border)',
+          borderRight: '1px solid var(--border)',
+          borderBottom: '1px solid var(--border)',
           opacity: draggedSnippetId === snippet.id ? 0.4 : 1,
-          borderColor: isSelected ? 'var(--color-primary)' : undefined,
           boxShadow: isSelected ? '0 0 0 1px var(--color-primary), var(--shadow-md)' : undefined
         }}
       >
@@ -2213,7 +2285,7 @@ export default function App() {
                 marginTop: '4px'
               }}
               className={!showAllCheckboxes && !isSelected ? "select-checkbox-hover-container" : ""}
-              title={isSelected ? "Desmarcar" : "Seleccionar"}
+title={isSelected ? t('common.deselect') : t('common.select')}
             >
               {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
             </div>
@@ -2232,7 +2304,7 @@ export default function App() {
             <button
               className="action-icon-btn"
               onClick={(e) => handleTogglePin(e, snippet.id)}
-              title={snippet.pinned ? "Desfijar" : "Fijar al inicio"}
+title={snippet.pinned ? t('snippet.unpin') : t('snippet.pin')}
               style={{ color: snippet.pinned ? 'var(--color-warning)' : 'var(--text-muted)' }}
             >
               <Pin size={14} style={{ fill: snippet.pinned ? 'var(--color-warning)' : 'none' }} />
@@ -2240,14 +2312,14 @@ export default function App() {
             <button
               className="action-icon-btn"
               onClick={(e) => handleOpenEdit(e, snippet)}
-              title="Editar"
+title={t('snippet.edit')}
             >
               <Edit3 size={14} />
             </button>
             <button
               className="action-icon-btn btn-delete"
               onClick={(e) => handleOpenDelete(e, snippet)}
-              title="Eliminar"
+title={t('snippet.delete')}
             >
               <Trash2 size={14} />
             </button>
@@ -2268,7 +2340,7 @@ export default function App() {
           </pre>
           <div className="copy-overlay">
             <Copy className="copy-overlay-icon" />
-            <span className="copy-overlay-text">Click para Copiar</span>
+            <span className="copy-overlay-text">{t('snippet.click_to_copy')}</span>
           </div>
         </div>
       </div>
@@ -2277,8 +2349,8 @@ export default function App() {
 
   // Reusable snippet row renderer
   const renderSnippetRow = (snippet) => {
-    const isSelected = selectedSnippetIds.includes(snippet.id);
-    const showAllCheckboxes = selectedSnippetIds.length > 0;
+    const isSelected = !isHomeView && selectedSnippetIds.includes(snippet.id);
+    const showAllCheckboxes = !isHomeView && selectedSnippetIds.length > 0;
     return (
       <div
         key={snippet.id}
@@ -2287,12 +2359,23 @@ export default function App() {
         onDragStart={(e) => handleSnippetDragStart(e, snippet.id)}
         onDragEnd={() => setDraggedSnippetId(null)}
         onClick={(e) => {
-          // If Shift is pressed OR bulk selection is already active
-          if (e.shiftKey || selectedSnippetIds.length > 0) {
+          if (!isHomeView && (e.shiftKey || selectedSnippetIds.length > 0)) {
             toggleSnippetSelection(snippet.id);
           } else {
             handleCopy(e, snippet.content, snippet.title);
           }
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setContextMenu({
+            x: e.clientX, y: e.clientY,
+            items: [
+              { label: t('snippet.edit'), icon: 'Edit3', action: () => handleOpenEdit(e, snippet) },
+              { label: snippet.pinned ? t('snippet.unpin') : t('snippet.pin'), icon: 'Pin', action: () => handleTogglePin(e, snippet.id) },
+              { label: t('snippet.delete'), icon: 'Trash2', action: () => handleOpenDelete(e, snippet), danger: true },
+            ]
+          });
         }}
         style={{
           display: 'flex',
@@ -2301,8 +2384,7 @@ export default function App() {
           padding: '12px 20px',
           backgroundColor: isSelected ? 'rgba(99, 102, 241, 0.04)' : 'var(--bg-card)',
           border: '1px solid var(--border)',
-          borderLeft: snippet.pinned ? '4px solid var(--color-warning)' : (isSelected ? '4px solid var(--color-primary)' : '1px solid var(--border)'),
-          borderColor: isSelected ? 'var(--color-primary)' : undefined,
+          borderLeft: snippet.pinned ? '4px solid var(--color-warning)' : (isSelected ? '4px solid var(--color-primary)' : '4px solid var(--border-hover)'),
           borderRadius: '8px',
           cursor: 'pointer',
           transition: 'all 0.15s ease',
@@ -2313,14 +2395,12 @@ export default function App() {
         onMouseEnter={(e) => {
           if (draggedSnippetId === null) {
             e.currentTarget.style.backgroundColor = 'var(--bg-card-hover)';
-            e.currentTarget.style.borderColor = 'var(--border-hover)';
             e.currentTarget.style.transform = 'translateX(4px)';
           }
         }}
         onMouseLeave={(e) => {
           if (draggedSnippetId === null && !isSelected) {
             e.currentTarget.style.backgroundColor = 'var(--bg-card)';
-            e.currentTarget.style.borderColor = 'var(--border)';
             e.currentTarget.style.transform = 'translateX(0)';
           } else if (isSelected) {
             e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.04)';
@@ -2392,14 +2472,14 @@ export default function App() {
           <button
             className="action-icon-btn"
             onClick={(e) => handleOpenEdit(e, snippet)}
-            title="Editar"
+            title={t('snippet.edit')}
           >
             <Edit3 size={14} />
           </button>
           <button
             className="action-icon-btn btn-delete"
             onClick={(e) => handleOpenDelete(e, snippet)}
-            title="Eliminar"
+            title={t('snippet.delete')}
           >
             <Trash2 size={14} />
           </button>
@@ -2418,7 +2498,7 @@ export default function App() {
               <Copy size={48} />
             </div>
             <div className="loading-spinner" />
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Restaurando sesión...</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{t('auth.restoring_session')}</p>
           </div>
         </div>
       ) : !user && isConfigured() ? (
@@ -2427,8 +2507,8 @@ export default function App() {
             <div className="login-icon">
               <Copy size={48} />
             </div>
-            <h1 className="login-title">SnapCopy</h1>
-            <p className="login-subtitle">Guarda y organiza tus fragmentos de código, comandos y consultas</p>
+            <h1 className="login-title">{t('app.name')}</h1>
+            <p className="login-subtitle">{t('auth.tagline')}</p>
             <button
               onClick={handleSignIn}
               className="login-google-btn"
@@ -2437,7 +2517,7 @@ export default function App() {
               {signingIn ? (
                 <>
                   <div className="loading-spinner" style={{ width: '20px', height: '20px', borderWidth: '2px' }} />
-                  <span>Abriendo Google...</span>
+                  <span>{t('auth.opening_google')}</span>
                 </>
               ) : (
                 <>
@@ -2447,7 +2527,7 @@ export default function App() {
                     <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
                     <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                   </svg>
-                  <span>Iniciar sesión con Google</span>
+                  <span>{t('auth.sign_in_google')}</span>
                 </>
               )}
             </button>
@@ -2491,10 +2571,10 @@ export default function App() {
           {/* Text */}
           <div style={{ textAlign: 'center' }}>
             <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '1rem', margin: 0 }}>
-              Sincronizando datos...
+              {t('sync.syncing_data')}
             </p>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '6px 0 0' }}>
-              Cargando tus workspaces, carpetas y configuración
+              {t('sync.loading_content')}
             </p>
           </div>
 
@@ -2547,10 +2627,10 @@ export default function App() {
           {/* Text */}
           <div style={{ textAlign: 'center' }}>
             <p style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '1rem', margin: 0 }}>
-              Cerrando sesión...
+              {t('signout.signing_out')}
             </p>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '6px 0 0' }}>
-              Guardando cambios y desconectando
+              {t('signout.saving_changes')}
             </p>
           </div>
 
@@ -2575,12 +2655,12 @@ export default function App() {
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Copy className="logo-icon" />
-                <span className="logo-text">SnapCopy</span>
+                <span className="logo-text">{t('app.name')}</span>
               </div>
               <button 
                 onClick={() => setIsSidebarCollapsed(true)} 
                 className="top-toggle-btn"
-                title="Colapsar barra lateral"
+                title={t('sidebar.collapse')}
                 style={{
                   background: 'transparent',
                   border: 'none',
@@ -2603,7 +2683,7 @@ export default function App() {
             <button 
               onClick={() => setIsSidebarCollapsed(false)} 
               className="top-toggle-btn"
-              title="Expandir barra lateral"
+              title={t('sidebar.expand')}
               style={{
                 background: 'transparent',
                 border: 'none',
@@ -2712,7 +2792,7 @@ export default function App() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }} onClick={e => e.stopPropagation()}>
                           <button
-                            title="Personalizar Espacio"
+                            title={t('sidebar.customize_workspace')}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleOpenEditWorkspace(w);
@@ -2734,7 +2814,7 @@ export default function App() {
                           </button>
                           {workspaces.length > 1 && (
                             <button
-                              title="Eliminar Espacio"
+                              title={t('sidebar.delete_workspace')}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteWorkspace(w);
@@ -2781,7 +2861,7 @@ export default function App() {
                       }}
                     >
                       <Plus size={14} />
-                      <span>Crear Workspace...</span>
+                      <span>{t('sidebar.create_workspace')}</span>
                     </div>
                   </div>
                 </>
@@ -2792,7 +2872,7 @@ export default function App() {
               <div 
                 className="workspace-trigger compact"
                 onClick={() => setIsWorkspaceDropdownOpen(!isWorkspaceDropdownOpen)}
-                title={`Espacio actual: ${currentWorkspace}`}
+                title={t('sidebar.current_workspace', { name: currentWorkspace })}
                 style={{
                   borderColor: getWorkspaceColorValue(currentWorkspace) + '50',
                   backgroundColor: getWorkspaceColorValue(currentWorkspace) + '0d',
@@ -2896,7 +2976,7 @@ export default function App() {
                       }}
                     >
                       <Plus size={14} />
-                      <span>Crear...</span>
+                      <span>{t('sidebar.create')}</span>
                     </div>
                   </div>
                 </>
@@ -2911,23 +2991,23 @@ export default function App() {
         <div
           className={`category-item ${isHomeView ? 'active' : ''}`}
           onClick={() => { setIsHomeView(true); setActiveFolder(null); }}
-          title={isSidebarCollapsed ? 'Inicio' : undefined}
+          title={isSidebarCollapsed ? t('sidebar.home') : undefined}
         >
           <div className="category-info">
             <Home size={16} />
-            {!isSidebarCollapsed && <span>Inicio</span>}
+            {!isSidebarCollapsed && <span>{t('sidebar.home')}</span>}
           </div>
         </div>
 
         <div className="category-section">
           {!isSidebarCollapsed && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '4px' }}>
-              <h3 className="category-title" style={{ marginBottom: 0 }}>Categorías</h3>
+              <h3 className="category-title" style={{ marginBottom: 0 }}>{t('sidebar.categories')}</h3>
               <div style={{ display: 'flex', gap: '2px' }}>
                 <button
                   className="action-icon-btn"
                   onClick={() => { setIsCategoryManageOpen(true); }}
-                  title="Gestionar categorías"
+                  title={t('sidebar.manage_categories')}
                   style={{ width: '24px', height: '24px', padding: 0 }}
                 >
                   <Settings size={12} />
@@ -2975,7 +3055,7 @@ export default function App() {
                     >
                       <div className="folder-info">
                         <Plus size={12} className="folder-icon" />
-                        <span style={{ fontSize: '0.75rem' }}>Nueva Carpeta</span>
+                        <span style={{ fontSize: '0.75rem' }}>{t('sidebar.new_folder')}</span>
                       </div>
                     </div>
                   </div>
@@ -2990,7 +3070,7 @@ export default function App() {
           <div ref={aboutRef} style={{ marginTop: 'auto', padding: '8px', display: 'flex', justifyContent: 'center', position: 'relative' }}>
             <button
               onClick={() => setShowAbout(!showAbout)}
-              title="Acerca de"
+              title={t('sidebar.about')}
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', transition: 'all 0.15s ease' }}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-primary)'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; }}
@@ -2999,8 +3079,8 @@ export default function App() {
             </button>
             {showAbout && (
               <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', background: '#1e293b', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px 18px', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 100, textAlign: 'center', lineHeight: '1.8', fontSize: '0.78rem' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>SnapCopy v{pkg.version}</div>
-                <div style={{ color: 'var(--text-secondary)' }}>CMT DEV SOLUTIONS</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>{t('app.version', { version: pkg.version })}</div>
+                <div style={{ color: 'var(--text-secondary)' }}>{t('app.author')}</div>
                 <div><a href="mailto:cmtdevsolutions@gestricon.com" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>cmtdevsolutions@gestricon.com</a></div>
               </div>
             )}
@@ -3012,18 +3092,18 @@ export default function App() {
           <div ref={aboutRef} style={{ marginTop: 'auto', padding: '8px 12px 4px', borderTop: '1px solid var(--border)', textAlign: 'center', position: 'relative' }}>
             <button
               onClick={() => setShowAbout(!showAbout)}
-              title="Acerca de"
+              title={t('sidebar.about')}
               style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', transition: 'all 0.15s ease' }}
               onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.04)'; }}
               onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.backgroundColor = 'transparent'; }}
             >
               <Info size={12} />
-              <span>Acerca de</span>
+              <span>{t('sidebar.about')}</span>
             </button>
             {showAbout && (
               <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', background: '#1e293b', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px 18px', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 100, textAlign: 'center', lineHeight: '1.8', fontSize: '0.78rem' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>SnapCopy v{pkg.version}</div>
-                <div style={{ color: 'var(--text-secondary)' }}>CMT DEV SOLUTIONS</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>{t('app.version', { version: pkg.version })}</div>
+                <div style={{ color: 'var(--text-secondary)' }}>{t('app.author')}</div>
                 <div><a href="mailto:cmtdevsolutions@gestricon.com" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>cmtdevsolutions@gestricon.com</a></div>
               </div>
             )}
@@ -3041,7 +3121,7 @@ export default function App() {
             <input 
               type="text" 
               className="search-input" 
-              placeholder="Buscar por título, comandos, código..."
+              placeholder={t('header.search_placeholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -3049,13 +3129,13 @@ export default function App() {
           
           <div className="header-actions" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <span className="stat-label">
-              Mostrando <span className="stat-value">{filteredSnippets.length}</span> de <span className="stat-value">{snippets.length}</span> snippets
+              {t('header.showing_snippets', { count: filteredSnippets.length, total: snippets.length })}
             </span>
             <button 
               type="button"
               className="action-icon-btn"
               onClick={() => setIsThemePanelOpen(true)}
-              title="Personalización"
+              title={t('header.customization')}
               style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '6px', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <Palette size={16} />
@@ -3064,7 +3144,7 @@ export default function App() {
               type="button"
               className="action-icon-btn"
               onClick={() => { setTourStep(0); setIsShortcutModalOpen(true); }}
-              title="Mostrar tour de inicio"
+              title={t('header.show_tour')}
               style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '6px', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <Keyboard size={16} />
@@ -3074,7 +3154,7 @@ export default function App() {
                 type="button"
                 className={`action-icon-btn ${viewMode === 'grid' ? 'active' : ''}`}
                 onClick={() => setViewMode('grid')}
-                title="Vista de cuadrícula"
+                title={t('header.grid_view')}
                 style={{ padding: '8px', border: 'none', borderRadius: 0, backgroundColor: viewMode === 'grid' ? 'var(--color-primary)' : 'transparent', color: viewMode === 'grid' ? 'white' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <LayoutGrid size={16} />
@@ -3083,7 +3163,7 @@ export default function App() {
                 type="button"
                 className={`action-icon-btn ${viewMode === 'list' ? 'active' : ''}`}
                 onClick={() => setViewMode('list')}
-                title="Vista de lista compacta"
+                title={t('header.list_view')}
                 style={{ padding: '8px', border: 'none', borderRadius: 0, backgroundColor: viewMode === 'list' ? 'var(--color-primary)' : 'transparent', color: viewMode === 'list' ? 'white' : 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <List size={16} />
@@ -3093,7 +3173,7 @@ export default function App() {
             {/* Cloud Status Badge */}
             {user && cloudEnabled && (
               <div
-                title={syncing ? "Sincronizando cambios con la nube..." : "Sincronizado con Supabase"}
+                title={syncing ? t('header.syncing_cloud') : t('header.synced_cloud')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -3113,7 +3193,7 @@ export default function App() {
                 ) : (
                   <Cloud size={13} />
                 )}
-                <span>{syncing ? 'Sincronizando' : 'En la nube'}</span>
+                <span>{syncing ? t('header.syncing_badge') : t('header.cloud_badge')}</span>
               </div>
             )}
 
@@ -3191,7 +3271,7 @@ export default function App() {
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
                         <RefreshCw size={14} style={{ color: 'var(--color-primary)' }} />
-                        <span>Buscar actualizaciones</span>
+                        <span>{t('header.check_updates')}</span>
                       </div>
                       <div
                         onClick={() => { setProfileMenuOpen(false); handleSignOut(); }}
@@ -3206,7 +3286,7 @@ export default function App() {
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                       >
                         <LogOut size={16} />
-                        <span>Cerrar sesión</span>
+                        <span>{t('header.sign_out')}</span>
                       </div>
                     </div>
                   </>
@@ -3238,7 +3318,7 @@ export default function App() {
                     }}
                   >
                     <Home size={14} style={{ opacity: 0.8 }} />
-                    Inicio
+                    {t('breadcrumb.home')}
                   </span>
                   {segments.map((seg, i) => (
                     <span key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3291,7 +3371,7 @@ export default function App() {
               }}>
                 <Home size={16} />
               </div>
-              <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Inicio</span>
+              <span style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{t('breadcrumb.home')}</span>
             </div>
           ) : activeFolder !== null && activeFolder !== '' ? (() => {
             const segments = activeFolder.split('/');
@@ -3356,7 +3436,7 @@ export default function App() {
                 })()}
                 <button
                   onClick={() => openFolderSettings(activeFolder)}
-                  title="Gestionar carpeta"
+                  title={t('folder_modal.manage_title')}
                   style={{
                     background: 'none', border: 'none',
                     color: 'var(--text-muted)', cursor: 'pointer', padding: '4px',
@@ -3393,14 +3473,14 @@ export default function App() {
             <button 
               className="btn-icon-add" 
               onClick={handleOpenAdd}
-              title="Nuevo Snippet"
+              title={t('snippet_modal.add_title')}
             >
               <Plus size={18} />
             </button>
             <button 
               className="btn-icon-add" 
               onClick={() => { setIsAddFolderModalOpen(true); setNewFolderName(''); }}
-              title="Nueva Carpeta"
+              title={t('add_folder_modal.title')}
             >
               <FolderIcon size={16} />
             </button>
@@ -3417,8 +3497,8 @@ export default function App() {
           ) : (currentSnippets.length === 0 && childFolders.length === 0) ? (
             <div className="empty-state">
               <FileText className="empty-icon" />
-              <p className="empty-title">No se encontraron snippets</p>
-              <p>Intenta cambiar el término de búsqueda o crea uno nuevo.</p>
+              <p className="empty-title">{t('content.no_snippets_found')}</p>
+              <p>{t('content.try_changing_search')}</p>
             </div>
           ) : viewMode === 'grid' ? (
             <div className="snippets-grid" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', height: '100%', overflow: 'hidden' }}>
@@ -3431,8 +3511,8 @@ export default function App() {
                         key={folder}
                         className={`folder-card ${dragOverFolder === folder ? 'drag-over' : ''}`}
                         onClick={() => setActiveFolder(folder)}
-                        title={`Ver "${getFolderName(folder)}" (${getFolderSnippetCount(folder)} snippets)`}
-                        draggable
+title={t('content.view_folder', { name: getFolderName(folder), count: getFolderSnippetCount(folder) })}
+                          draggable
                         onDragStart={(e) => handleFolderDragStart(e, folder)}
                         onDragEnd={() => { setDraggedSnippetId(null); setIsFolderDragged(false); }}
                         onDragOver={(e) => { e.preventDefault(); setDragOverFolder(folder); }}
@@ -3442,7 +3522,7 @@ export default function App() {
                         <FolderIcon size={18} className="folder-card-icon" />
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '1px', overflow: 'hidden' }}>
                           <span className="folder-card-name" style={{ textAlign: 'left', textOverflow: 'ellipsis', whiteSpace: 'nowrap', overflow: 'hidden', width: '100%', margin: 0 }}>{getFolderName(folder)}</span>
-                          <span className="folder-card-count" style={{ margin: 0 }}>{getFolderSnippetCount(folder)} snippets</span>
+                          <span className="folder-card-count" style={{ margin: 0 }}>{t('content.count_snippets', { count: getFolderSnippetCount(folder) })}</span>
                         </div>
                       </div>
                     ))}
@@ -3453,9 +3533,9 @@ export default function App() {
                   <div className="folder-group-grid" style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, overflow: 'hidden', minHeight: 0 }}>
                     <div className="folder-separator" style={{ flexShrink: 0 }}>
                       {currentLevel ? (
-                        <span>Snippets en "{getFolderName(currentLevel)}"</span>
+                        <span>{t('content.snippets_in', { name: getFolderName(currentLevel) })}</span>
                       ) : (
-                        <span>Sin carpeta</span>
+                        <span>{t('common.no_folder_label')}</span>
                       )}
                       <span className="category-count">{currentSnippets.length}</span>
                     </div>
@@ -3469,8 +3549,8 @@ export default function App() {
                 {currentSnippets.length === 0 && childFolders.length === 0 && (
                   <div className="empty-state" style={{ flexGrow: 1 }}>
                     <FileText className="empty-icon" />
-                    <p className="empty-title">No se encontraron snippets</p>
-                    <p>Intenta cambiar el término de búsqueda o crea uno nuevo.</p>
+                    <p className="empty-title">{t('content.no_snippets_found')}</p>
+                    <p>{t('content.try_changing_search')}</p>
                   </div>
                 )}
               </>
@@ -3486,7 +3566,7 @@ export default function App() {
                           key={folder}
                           className={`folder-row ${dragOverFolder === folder ? 'drag-over' : ''}`}
                           onClick={() => setActiveFolder(folder)}
-                          title={`Ver "${getFolderName(folder)}" (${getFolderSnippetCount(folder)} snippets)`}
+title={t('content.view_folder', { name: getFolderName(folder), count: getFolderSnippetCount(folder) })}
                           draggable
                           onDragStart={(e) => handleFolderDragStart(e, folder)}
                           onDragEnd={() => { setDraggedSnippetId(null); setIsFolderDragged(false); }}
@@ -3506,9 +3586,9 @@ export default function App() {
                     <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1, overflow: 'hidden', minHeight: 0 }}>
                       <div className="folder-separator" style={{ padding: '12px 16px 4px', flexShrink: 0 }}>
                         {currentLevel ? (
-                          <span>Snippets en "{getFolderName(currentLevel)}"</span>
+                          <span>{t('content.snippets_in', { name: getFolderName(currentLevel) })}</span>
                         ) : (
-                          <span>Sin carpeta</span>
+                          <span>{t('common.no_folder_label')}</span>
                         )}
                         <span className="category-count">{currentSnippets.length}</span>
                       </div>
@@ -3529,7 +3609,7 @@ export default function App() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3 className="modal-title">
-                {editingSnippet ? 'Editar Snippet' : 'Agregar Nuevo Snippet'}
+                {editingSnippet ? t('snippet_modal.edit_title') : t('snippet_modal.add_title')}
               </h3>
               <button className="action-icon-btn" onClick={() => setIsFormModalOpen(false)}>
                 <X size={18} />
@@ -3539,19 +3619,19 @@ export default function App() {
             <form onSubmit={handleSaveSnippet}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Título</label>
+                  <label className="form-label">{t('snippet_modal.title_label')}</label>
                   <input 
                     type="text" 
                     className="form-input" 
                     required 
-                    placeholder="Ej. Limpiar caché npm, Consulta de Ventas"
+                    placeholder={t('snippet_modal.title_placeholder')}
                     value={formTitle}
                     onChange={(e) => setFormTitle(e.target.value)}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Categoría</label>
+                  <label className="form-label">{t('snippet_modal.category_label')}</label>
                   <div className="custom-dropdown" style={{ position: 'relative', width: '100%' }}>
                     <div 
                       className="form-input dropdown-trigger" 
@@ -3572,7 +3652,7 @@ export default function App() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         {getCategoryIcon(selectedCategoryOption)}
                         <span>
-                          {selectedCategoryOption || 'Selecciona una categoría...'}
+                          {selectedCategoryOption || t('snippet_modal.category_placeholder')}
                         </span>
                       </div>
                       <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', transition: 'transform 0.2s', transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
@@ -3649,18 +3729,18 @@ export default function App() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Contenido / Código</label>
+                  <label className="form-label">{t('snippet_modal.content_label')}</label>
                   <textarea 
                     className="form-input form-textarea" 
                     required
-                    placeholder="Escribe o pega aquí tu fragmento de texto..."
+                    placeholder={t('snippet_modal.content_placeholder')}
                     value={formContent}
                     onChange={(e) => setFormContent(e.target.value)}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Color de Identificación</label>
+                  <label className="form-label">{t('snippet_modal.color_label')}</label>
                   <div className="color-picker-grid">
                     {['indigo', 'emerald', 'violet', 'amber', 'rose'].map(color => (
                       <div 
@@ -3673,21 +3753,21 @@ export default function App() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Carpeta (opcional)</label>
+                  <label className="form-label">{t('snippet_modal.folder_label')}</label>
                   <select
                     className="form-input"
                     value={formFolder}
                     onChange={(e) => setFormFolder(e.target.value)}
                     style={{ padding: '10px 12px', cursor: 'pointer' }}
                   >
-                    <option value="">— Sin carpeta —</option>
+                    <option value="">{t('common.no_folder')}</option>
                     {getFoldersForCategory(formCategory || 'General').map(f => (
                       <option key={f} value={f}>
                         {'  '.repeat((f.match(/\//g) || []).length)}{getFolderName(f)}
                       </option>
                     ))}
                     {getFoldersForCategory(formCategory || 'General').length === 0 && (
-                      <option value="" disabled>Usa la categoría para crear carpetas</option>
+                      <option value="" disabled>{t('common.use_category_for_folders')}</option>
                     )}
                   </select>
                 </div>
@@ -3695,10 +3775,10 @@ export default function App() {
 
               <div className="modal-footer">
                 <button type="button" className="btn-secondary" onClick={() => setIsFormModalOpen(false)}>
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn-add" style={{ marginBottom: 0 }}>
-                  Guardar
+                  {t('common.save')}
                 </button>
               </div>
             </form>
@@ -3711,7 +3791,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsDeleteModalOpen(false)}>
           <div className="modal-content" style={{ width: '90%', maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Confirmar Eliminación</h3>
+              <h3 className="modal-title">{t('delete_modal.confirm_title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsDeleteModalOpen(false)}>
                 <X size={18} />
               </button>
@@ -3720,7 +3800,7 @@ export default function App() {
               <AlertCircle size={32} style={{ color: '#ef4444', flexShrink: 0 }} />
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '8px' }}>
-                  ¿Estás seguro de que deseas eliminar este snippet?
+                  {t('delete_modal.confirm_snippet')}
                 </p>
                 <p style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
                   "{snippetToDelete.title}"
@@ -3729,10 +3809,10 @@ export default function App() {
             </div>
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setIsDeleteModalOpen(false)}>
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button className="btn-danger-confirm" onClick={handleDeleteSnippet}>
-                Eliminar
+                {t('common.delete')}
               </button>
             </div>
           </div>
@@ -3744,7 +3824,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsBulkDeleteModalOpen(false)}>
           <div className="modal-content" style={{ width: '90%', maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Confirmar Eliminación</h3>
+              <h3 className="modal-title">{t('delete_modal.confirm_title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsBulkDeleteModalOpen(false)}>
                 <X size={18} />
               </button>
@@ -3753,19 +3833,19 @@ export default function App() {
               <AlertCircle size={32} style={{ color: '#ef4444', flexShrink: 0 }} />
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '8px' }}>
-                  Esta acción es irreversible.
+                  {t('delete_modal.irreversible')}
                 </p>
                 <p style={{ fontWeight: '600', color: 'var(--text-primary)' }}>
-                  ¿Eliminar {selectedSnippetIds.length} snippet{selectedSnippetIds.length !== 1 ? 's' : ''} seleccionado{selectedSnippetIds.length !== 1 ? 's' : ''}?
+                  {t('delete_modal.confirm_bulk', { count: selectedSnippetIds.length, plural: selectedSnippetIds.length !== 1 ? 's' : '' })}
                 </p>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setIsBulkDeleteModalOpen(false)}>
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button className="btn-danger-confirm" onClick={executeBulkDelete}>
-                Sí, eliminar
+                {t('common.yes_delete')}
               </button>
             </div>
           </div>
@@ -3777,7 +3857,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsAddWorkspaceModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Nuevo Espacio de Trabajo</h3>
+              <h3 className="modal-title">{t('workspace_modal.new_title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsAddWorkspaceModalOpen(false)}>
                 <X size={18} />
               </button>
@@ -3785,12 +3865,12 @@ export default function App() {
             <form onSubmit={handleAddWorkspace}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Nombre del Espacio</label>
+                  <label className="form-label">{t('workspace_modal.name_label')}</label>
                   <input 
                     type="text" 
                     className="form-input" 
                     required 
-                    placeholder="Ej. Personal, Trabajo, Docker"
+                    placeholder={t('workspace_modal.name_placeholder')}
                     value={newWorkspaceName}
                     onChange={(e) => setNewWorkspaceName(e.target.value)}
                     autoFocus
@@ -3799,10 +3879,10 @@ export default function App() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-secondary" onClick={() => setIsAddWorkspaceModalOpen(false)}>
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn-primary">
-                  Crear Espacio
+                  {t('workspace_modal.create_button')}
                 </button>
               </div>
             </form>
@@ -3815,7 +3895,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsEditWorkspaceModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Personalizar Espacio</h3>
+              <h3 className="modal-title">{t('workspace_edit_modal.title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsEditWorkspaceModalOpen(false)}>
                 <X size={18} />
               </button>
@@ -3823,28 +3903,28 @@ export default function App() {
             <form onSubmit={(e) => { e.preventDefault(); handleSaveWorkspaceEdit(); }}>
               <div className="modal-body">
                 <div className="form-group" style={{ marginBottom: '20px' }}>
-                  <label className="form-label">Nombre del Espacio</label>
+                  <label className="form-label">{t('workspace_edit_modal.name_label')}</label>
                   <input 
                     type="text" 
                     className="form-input" 
                     required 
-                    placeholder="Ej. Personal, Trabajo"
+                    placeholder={t('workspace_edit_modal.name_placeholder')}
                     value={editWorkspaceName}
                     onChange={(e) => setEditWorkspaceName(e.target.value)}
                     autoFocus
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label" style={{ marginBottom: '10px', display: 'block' }}>Color Identificador</label>
+                  <label className="form-label" style={{ marginBottom: '10px', display: 'block' }}>{t('workspace_edit_modal.color_label')}</label>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', padding: '4px 0' }}>
                     {[
-                      { name: 'indigo', label: 'Índigo', hex: '#6366f1' },
-                      { name: 'emerald', label: 'Esmeralda', hex: '#10b981' },
-                      { name: 'rose', label: 'Rosa', hex: '#f43f5e' },
-                      { name: 'amber', label: 'Ámbar', hex: '#f59e0b' },
-                      { name: 'sky', label: 'Cielo', hex: '#0ea5e9' },
-                      { name: 'violet', label: 'Violeta', hex: '#8b5cf6' },
-                      { name: 'teal', label: 'Teal', hex: '#14b8a6' },
+                      { name: 'indigo', label: t('workspace_edit_modal.colors.indigo'), hex: '#6366f1' },
+                      { name: 'emerald', label: t('workspace_edit_modal.colors.emerald'), hex: '#10b981' },
+                      { name: 'rose', label: t('workspace_edit_modal.colors.rose'), hex: '#f43f5e' },
+                      { name: 'amber', label: t('workspace_edit_modal.colors.amber'), hex: '#f59e0b' },
+                      { name: 'sky', label: t('workspace_edit_modal.colors.sky'), hex: '#0ea5e9' },
+                      { name: 'violet', label: t('workspace_edit_modal.colors.violet'), hex: '#8b5cf6' },
+                      { name: 'teal', label: t('workspace_edit_modal.colors.teal'), hex: '#14b8a6' },
                     ].map(c => {
                       const isSelected = editWorkspaceColor === c.name;
                       return (
@@ -3873,10 +3953,10 @@ export default function App() {
               </div>
               <div className="modal-footer" style={{ marginTop: '20px' }}>
                 <button type="button" className="btn-secondary" onClick={() => setIsEditWorkspaceModalOpen(false)}>
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn-primary" style={{ background: getWorkspaceColorValue(workspaceToEdit) }}>
-                  Guardar Cambios
+                  {t('workspace_edit_modal.save_changes')}
                 </button>
               </div>
             </form>
@@ -3889,7 +3969,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsFolderSettingsOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Gestionar Carpeta</h3>
+              <h3 className="modal-title">{t('folder_modal.manage_title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsFolderSettingsOpen(false)}>
                 <X size={18} />
               </button>
@@ -3902,7 +3982,7 @@ export default function App() {
               </p>
               <form onSubmit={handleRenameFolder}>
                 <div className="form-group">
-                  <label className="form-label">Renombrar carpeta</label>
+                  <label className="form-label">{t('folder_modal.rename_label')}</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <input
                       type="text"
@@ -3914,19 +3994,19 @@ export default function App() {
                       autoFocus
                     />
                     <button type="submit" className="btn-primary" style={{ whiteSpace: 'nowrap', padding: '10px 16px' }}>
-                      Renombrar
+                      {t('common.rename')}
                     </button>
                   </div>
                 </div>
               </form>
               <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '16px 0' }} />
               <div className="form-group">
-                <label className="form-label">Eliminar carpeta y subcarpetas</label>
+                <label className="form-label">{t('folder_modal.delete_section')}</label>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                  Todos los snippets dentro de esta carpeta y sus subcarpetas se moverán a "Sin carpeta".
+                  {t('folder_modal.delete_info')}
                 </p>
                 <button className="btn-danger-confirm" onClick={handleDeleteFolder} style={{ width: '100%' }}>
-                  Eliminar "{getFolderName(folderSettingsName)}"
+                  {t('folder_modal.delete_button', { name: getFolderName(folderSettingsName) })}
                 </button>
               </div>
             </div>
@@ -3939,7 +4019,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsDeleteFolderConfirmOpen(false)}>
           <div className="modal-content" style={{ width: '90%', maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Eliminar Carpeta</h3>
+              <h3 className="modal-title">{t('delete_folder_modal.title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsDeleteFolderConfirmOpen(false)}>
                 <X size={18} />
               </button>
@@ -3948,19 +4028,19 @@ export default function App() {
               <AlertCircle size={32} style={{ color: '#ef4444', flexShrink: 0 }} />
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '8px' }}>
-                  ¿Eliminar la carpeta "<strong style={{ color: 'var(--text-primary)' }}>{getFolderName(folderSettingsName)}</strong>" y todo su contenido?
+                  {t('delete_folder_modal.confirm', { name: getFolderName(folderSettingsName) })}
                 </p>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  Los snippets se moverán a "Sin carpeta".
+                  {t('delete_folder_modal.info')}
                 </p>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setIsDeleteFolderConfirmOpen(false)}>
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button className="btn-danger-confirm" onClick={() => { setIsDeleteFolderConfirmOpen(false); executeDeleteFolder(); }}>
-                Eliminar carpeta
+                {t('delete_folder_modal.delete_button')}
               </button>
             </div>
           </div>
@@ -3972,7 +4052,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsDeleteWorkspaceConfirmOpen(false)}>
           <div className="modal-content" style={{ width: '90%', maxWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Eliminar Espacio</h3>
+              <h3 className="modal-title">{t('delete_workspace_modal.title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsDeleteWorkspaceConfirmOpen(false)}>
                 <X size={18} />
               </button>
@@ -3981,19 +4061,19 @@ export default function App() {
               <AlertCircle size={32} style={{ color: '#ef4444', flexShrink: 0 }} />
               <div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '8px' }}>
-                  ¿Eliminar el espacio de trabajo "<strong style={{ color: 'var(--text-primary)' }}>{workspaceToDelete}</strong>"?
+                  {t('delete_workspace_modal.confirm', { name: workspaceToDelete })}
                 </p>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                  Se eliminarán permanentemente todos los snippets y carpetas contenidos en este espacio. Esta acción no se puede deshacer.
+                  {t('delete_workspace_modal.warning')}
                 </p>
               </div>
             </div>
             <div className="modal-footer">
               <button className="btn-secondary" onClick={() => setIsDeleteWorkspaceConfirmOpen(false)}>
-                Cancelar
+                {t('common.cancel')}
               </button>
               <button className="btn-danger-confirm" onClick={() => { executeDeleteWorkspace(); }}>
-                Eliminar espacio
+                {t('delete_workspace_modal.delete_button')}
               </button>
             </div>
           </div>
@@ -4005,7 +4085,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsCategoryManageOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Gestionar Categorías</h3>
+              <h3 className="modal-title">{t('manage_categories_modal.title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsCategoryManageOpen(false)}>
                 <X size={18} />
               </button>
@@ -4014,7 +4094,7 @@ export default function App() {
               <form onSubmit={(e) => { e.preventDefault(); handleCreateCategory(); }} style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <div style={{ position: 'relative' }} ref={createIconPickerRef}>
-                    <button type="button" className="action-icon-btn" onClick={() => setIsCreateIconPickerOpen(!isCreateIconPickerOpen)} title="Elegir icono" style={{ width: '36px', height: '36px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                    <button type="button" className="action-icon-btn" onClick={() => setIsCreateIconPickerOpen(!isCreateIconPickerOpen)} title={t('manage_categories_modal.choose_icon')} style={{ width: '36px', height: '36px', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                       {(() => { const Ic = AVAILABLE_ICONS[selectedCategoryIcon] || FileText; return <Ic size={16} />; })()}
                     </button>
                     {isCreateIconPickerOpen && (
@@ -4037,7 +4117,7 @@ export default function App() {
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Nueva categoría..."
+                    placeholder={t('manage_categories_modal.new_category_placeholder')}
                     value={newCategoryName}
                     onChange={(e) => setNewCategoryName(e.target.value)}
                     style={{ flexGrow: 1 }}
@@ -4065,12 +4145,12 @@ export default function App() {
                           style={{ flex: '1', padding: '6px 8px', fontSize: '0.85rem' }}
                           onBlur={() => setEditingCategory(null)}
                         />
-                        <button type="submit" className="btn-primary" style={{ padding: '6px 10px', fontSize: '0.8rem' }}>OK</button>
+                        <button type="submit" className="btn-primary" style={{ padding: '6px 10px', fontSize: '0.8rem' }}>{t('common.ok')}</button>
                       </form>
                     ) : (
                       <>
                         <div style={{ position: 'relative', flexShrink: 0 }}>
-                          <button type="button" className="action-icon-btn" onClick={() => setEditingCategoryIcon(editingCategoryIcon === cat ? null : cat)} title="Cambiar icono" style={{ width: '28px', height: '28px' }}>
+                          <button type="button" className="action-icon-btn" onClick={() => setEditingCategoryIcon(editingCategoryIcon === cat ? null : cat)} title={t('manage_categories_modal.change_icon')} style={{ width: '28px', height: '28px' }}>
                             {getCategoryIcon(cat, 14)}
                           </button>
                           {editingCategoryIcon === cat && (
@@ -4099,7 +4179,7 @@ export default function App() {
                           <button
                             className="action-icon-btn"
                             onClick={() => { setEditingCategory(cat); setEditingCategoryValue(cat); }}
-                            title="Renombrar"
+                            title={t('manage_categories_modal.rename')}
                             style={{ width: '28px', height: '28px' }}
                           >
                             <Edit3 size={14} />
@@ -4108,7 +4188,7 @@ export default function App() {
                             className="action-icon-btn"
                             onClick={() => handleMoveCategory(cat, -1)}
                             disabled={idx === 0}
-                            title="Mover arriba"
+                            title={t('manage_categories_modal.move_up')}
                             style={{ opacity: idx === 0 ? 0.3 : 1, width: '28px', height: '28px' }}
                           >
                             <ChevronUp size={14} />
@@ -4117,7 +4197,7 @@ export default function App() {
                             className="action-icon-btn"
                             onClick={() => handleMoveCategory(cat, 1)}
                             disabled={idx === orderedCategories.length - 1}
-                            title="Mover abajo"
+                            title={t('manage_categories_modal.move_down')}
                             style={{ opacity: idx === orderedCategories.length - 1 ? 0.3 : 1, width: '28px', height: '28px' }}
                           >
                             <ChevronDown size={14} />
@@ -4125,7 +4205,7 @@ export default function App() {
                           <button
                             className="action-icon-btn btn-delete"
                             onClick={() => handleDeleteCategory(cat)}
-                            title="Eliminar categoría"
+                            title={t('manage_categories_modal.delete_category')}
                             style={{ width: '28px', height: '28px' }}
                           >
                             <Trash2 size={14} />
@@ -4146,7 +4226,7 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsAddFolderModalOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Nueva Carpeta</h3>
+              <h3 className="modal-title">{t('add_folder_modal.title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsAddFolderModalOpen(false)}>
                 <X size={18} />
               </button>
@@ -4154,12 +4234,12 @@ export default function App() {
             <form onSubmit={handleAddFolder}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label className="form-label">Nombre de la Carpeta</label>
+                  <label className="form-label">{t('add_folder_modal.name_label')}</label>
                   <input
                     type="text"
                     className="form-input"
                     required
-                    placeholder="Ej. Git, Docker, Redes..."
+                    placeholder={t('add_folder_modal.name_placeholder')}
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                     autoFocus
@@ -4172,10 +4252,10 @@ export default function App() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-secondary" onClick={() => setIsAddFolderModalOpen(false)}>
-                  Cancelar
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn-primary">
-                  Crear Carpeta
+                  {t('add_folder_modal.create_button')}
                 </button>
               </div>
             </form>
@@ -4188,17 +4268,46 @@ export default function App() {
         <div className="modal-backdrop" onClick={() => setIsThemePanelOpen(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ width: '90%', maxWidth: '500px', borderRadius: '18px', padding: '24px' }}>
             <div className="modal-header" style={{ marginBottom: '18px' }}>
-              <h3 className="modal-title" style={{ fontSize: '1.25rem', fontWeight: 700 }}>Personalización</h3>
+              <h3 className="modal-title" style={{ fontSize: '1.25rem', fontWeight: 700 }}>{t('customization_modal.title')}</h3>
               <button className="action-icon-btn" onClick={() => setIsThemePanelOpen(false)}>
                 <X size={18} />
               </button>
             </div>
             <div className="modal-body" style={{ padding: 0 }}>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '20px', fontWeight: 500 }}>
-                Elige la combinación de color que mejor se adapte a tu estilo de trabajo:
+                {t('customization_modal.description')}
               </p>
+
+              {/* Language Selector */}
+              <div style={{ marginBottom: '20px', padding: '14px', borderRadius: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px' }}>{t('customization_modal.language')}</p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {['es', 'en'].map(lang => (
+                    <button
+                      key={lang}
+                      onClick={() => { i18n.changeLanguage(lang); localStorage.setItem('snapcopy_language', lang); }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        border: i18n.language === lang ? '1.5px solid var(--color-primary)' : '1.5px solid var(--border)',
+                        backgroundColor: i18n.language === lang ? 'rgba(99, 102, 241, 0.1)' : 'transparent',
+                        color: i18n.language === lang ? 'var(--color-primary)' : 'var(--text-secondary)',
+                        transition: 'all 0.2s ease',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {t(`languages.${lang}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                {Object.entries(themes).map(([key, t]) => (
+                {Object.entries(themes).map(([key, th]) => (
                   <button
                     key={key}
                     onClick={() => handleThemeChange(key)}
@@ -4209,20 +4318,20 @@ export default function App() {
                       padding: '12px',
                       borderRadius: '12px',
                       cursor: 'pointer',
-                      backgroundColor: theme === key ? `${t.primary}08` : 'rgba(255, 255, 255, 0.01)',
-                      border: theme === key ? `1.5px solid ${t.primary}` : '1.5px solid rgba(255, 255, 255, 0.05)',
+                      backgroundColor: theme === key ? `${th.primary}08` : 'rgba(255, 255, 255, 0.01)',
+                      border: theme === key ? `1.5px solid ${th.primary}` : '1.5px solid rgba(255, 255, 255, 0.05)',
                       transition: 'all 0.2s ease',
                       width: '100%',
                       textAlign: 'left',
                       boxSizing: 'border-box'
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.backgroundColor = theme === key ? `${t.primary}15` : 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = theme === key ? t.primary : 'rgba(255, 255, 255, 0.15)';
+                      e.currentTarget.style.backgroundColor = theme === key ? `${th.primary}15` : 'rgba(255, 255, 255, 0.04)';
+                      e.currentTarget.style.borderColor = theme === key ? th.primary : 'rgba(255, 255, 255, 0.15)';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.backgroundColor = theme === key ? `${t.primary}08` : 'rgba(255, 255, 255, 0.01)';
-                      e.currentTarget.style.borderColor = theme === key ? t.primary : 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.backgroundColor = theme === key ? `${th.primary}08` : 'rgba(255, 255, 255, 0.01)';
+                      e.currentTarget.style.borderColor = theme === key ? th.primary : 'rgba(255, 255, 255, 0.05)';
                     }}
                   >
                     {/* Mini UI Mockup Preview */}
@@ -4230,8 +4339,8 @@ export default function App() {
                       width: '54px',
                       height: '38px',
                       borderRadius: '6px',
-                      border: `1px solid ${t.border || 'rgba(255,255,255,0.08)'}`,
-                      backgroundColor: t.bgMain,
+                      border: `1px solid ${th.border || 'rgba(255,255,255,0.08)'}`,
+                      backgroundColor: th.bgMain,
                       position: 'relative',
                       display: 'flex',
                       flexDirection: 'row',
@@ -4243,8 +4352,8 @@ export default function App() {
                       <div style={{
                         width: '14px',
                         height: '100%',
-                        backgroundColor: t.bgSidebar,
-                        borderRight: `1px solid ${t.border || 'rgba(255,255,255,0.08)'}`,
+                        backgroundColor: th.bgSidebar,
+                        borderRight: `1px solid ${th.border || 'rgba(255,255,255,0.08)'}`,
                         padding: '3px 2px',
                         display: 'flex',
                         flexDirection: 'column',
@@ -4252,10 +4361,10 @@ export default function App() {
                         boxSizing: 'border-box'
                       }}>
                         {/* Mini Workspace dot */}
-                        <div style={{ width: '10px', height: '4px', borderRadius: '1.5px', backgroundColor: t.primary, opacity: 0.8, marginBottom: '2px' }} />
+                        <div style={{ width: '10px', height: '4px', borderRadius: '1.5px', backgroundColor: th.primary, opacity: 0.8, marginBottom: '2px' }} />
                         {/* Mini Sidebar category lines */}
                         <div style={{ width: '8px', height: '2px', borderRadius: '1px', backgroundColor: 'rgba(255,255,255,0.15)' }} />
-                        <div style={{ width: '10px', height: '2px', borderRadius: '1px', backgroundColor: t.primary, opacity: 0.6 }} />
+                        <div style={{ width: '10px', height: '2px', borderRadius: '1px', backgroundColor: th.primary, opacity: 0.6 }} />
                         <div style={{ width: '6px', height: '2px', borderRadius: '1px', backgroundColor: 'rgba(255,255,255,0.15)' }} />
                       </div>
                       
@@ -4269,15 +4378,15 @@ export default function App() {
                         {/* Mini Header */}
                         <div style={{
                           height: '6px',
-                          borderBottom: `1px solid ${t.border || 'rgba(255,255,255,0.08)'}`,
-                          backgroundColor: t.bgMain,
+                          borderBottom: `1px solid ${th.border || 'rgba(255,255,255,0.08)'}`,
+                          backgroundColor: th.bgMain,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'flex-end',
                           padding: '0 3px',
                           boxSizing: 'border-box'
                         }}>
-                          <div style={{ width: '6px', height: '2px', borderRadius: '0.5px', backgroundColor: t.primary }} />
+                          <div style={{ width: '6px', height: '2px', borderRadius: '0.5px', backgroundColor: th.primary }} />
                         </div>
                         {/* Mini Content Grid */}
                         <div style={{
@@ -4290,13 +4399,13 @@ export default function App() {
                         }}>
                           <div style={{
                             borderRadius: '1.5px',
-                            border: `0.5px solid ${t.primary}40`,
-                            backgroundColor: `${t.primary}05`,
+                            border: `0.5px solid ${th.primary}40`,
+                            backgroundColor: `${th.primary}05`,
                             boxSizing: 'border-box'
                           }} />
                           <div style={{
                             borderRadius: '1.5px',
-                            border: `0.5px solid ${t.border || 'rgba(255,255,255,0.08)'}`,
+                            border: `0.5px solid ${th.border || 'rgba(255,255,255,0.08)'}`,
                             backgroundColor: 'rgba(255,255,255,0.01)',
                             boxSizing: 'border-box'
                           }} />
@@ -4305,16 +4414,69 @@ export default function App() {
                     </div>
 
                     <span style={{ flex: '1', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {t.name}
+                      {th.name}
                     </span>
                     {theme === key && (
-                      <Check size={14} style={{ color: t.primary, flexShrink: 0 }} />
+                      <Check size={14} style={{ color: th.primary, flexShrink: 0 }} />
                     )}
                   </button>
                 ))}
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* CONTEXT MENU */}
+      {contextMenu && (
+        <div
+          style={{
+            position: 'fixed',
+            top: contextMenu.y,
+            left: contextMenu.x,
+            zIndex: 10000,
+            minWidth: '160px',
+            background: '#1e293b',
+            border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: '10px',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+            padding: '4px',
+            animation: 'fadeIn 0.1s ease',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contextMenu.items.map((item, i) => (
+            <div
+              key={i}
+              onClick={(e) => {
+                e.stopPropagation();
+                setContextMenu(null);
+                item.action();
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '0.82rem',
+                fontWeight: 500,
+                color: item.danger ? '#ef4444' : 'var(--text-primary)',
+                transition: 'all 0.12s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.backgroundColor = item.danger ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)'; }}
+              onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+            >
+              <span style={{ width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {item.icon === 'Edit3' && <Edit3 size={14} />}
+                {item.icon === 'Trash2' && <Trash2 size={14} />}
+                {item.icon === 'Pin' && <Pin size={14} />}
+                {item.icon === 'Settings' && <Settings size={14} />}
+              </span>
+              {item.label}
+            </div>
+          ))}
         </div>
       )}
 
@@ -4340,10 +4502,10 @@ export default function App() {
               <>
                 <div style={{ marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#e2e8f0', marginBottom: '8px' }}>
-                    ¡Bienvenido a SnapCopy!
+                    {t('tour.welcome_title')}
                   </h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.5', padding: '0 12px' }}>
-                    Hemos configurado un atajo de teclado global. Úsalo desde cualquier aplicación en Windows para mostrar u ocultar la ventana:
+                    {t('tour.welcome_desc')}
                   </p>
                 </div>
                 <div style={{ background: 'rgba(15, 23, 42, 0.4)', border: '1px solid rgba(255, 255, 255, 0.03)', borderRadius: '16px', padding: '20px', margin: '20px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', boxShadow: 'inset 0 2px 8px rgba(0,0,0,0.2)' }}>
@@ -4356,7 +4518,7 @@ export default function App() {
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                     <Sparkles size={12} style={{ color: 'var(--color-warning)' }} />
-                    <span>¡Funciona de forma global, incluso con la app minimizada!</span>
+                    <span>{t('tour.welcome_footnote')}</span>
                   </div>
                 </div>
               </>
@@ -4370,10 +4532,10 @@ export default function App() {
             content: (
               <div style={{ marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#e2e8f0', marginBottom: '8px' }}>
-                    Crear Snippets
+                    {t('tour.create_title')}
                   </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.6', padding: '0 12px', textAlign: 'left' }}>
-                  Dentro de cada categoría, usa el botón <strong style={{ color: 'var(--text-primary)' }}>+</strong> que aparece en la parte superior derecha para agregar un nuevo snippet. Puedes asignarle un título, categoría, carpeta y código. Los snippets se guardan automáticamente.
+                  {t('tour.create_desc')}
                 </p>
               </div>
             )
@@ -4386,10 +4548,10 @@ export default function App() {
             content: (
               <div style={{ marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#e2e8f0', marginBottom: '8px' }}>
-                    Organizar con Carpetas
+                    {t('tour.organize_title')}
                   </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.6', padding: '0 12px', textAlign: 'left' }}>
-                  Dentro de cada categoría, usa el botón <FolderIcon size={16} style={{ display: 'inline', verticalAlign: 'middle', color: 'var(--text-primary)' }} /> para crear carpetas anidadas. Arrastra y suelta snippets o carpetas entre sí para reorganizar todo tu contenido. La ruta de navegación se muestra en la parte superior para que siempre sepas dónde estás.
+                  {t('tour.organize_desc')}
                 </p>
               </div>
             )
@@ -4402,10 +4564,10 @@ export default function App() {
             content: (
               <div style={{ marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#e2e8f0', marginBottom: '8px' }}>
-                  Selección y Acciones Múltiples
+                  {t('tour.selection_title')}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.6', padding: '0 12px', textAlign: 'left' }}>
-                  Puedes marcar la casilla de un snippet o hacer <strong style={{ color: 'var(--text-primary)' }}>Shift + Click</strong> sobre él para seleccionarlo rápidamente. Selecciona varios a la vez para arrastrarlos juntos a una carpeta. También aparecerá una <strong>Barra de Acciones Masivas</strong> en la parte inferior para moverlos o eliminarlos en lote.
+                  {t('tour.selection_desc')}
                 </p>
               </div>
             )
@@ -4418,10 +4580,10 @@ export default function App() {
             content: (
               <div style={{ marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#e2e8f0', marginBottom: '8px' }}>
-                    Buscar y Explorar
+                    {t('tour.search_title')}
                   </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.6', padding: '0 12px', textAlign: 'left' }}>
-                  Usa la barra de búsqueda en la parte superior para filtrar snippets al instante. Navega por categorías en la barra lateral y expande las carpetas para encontrar lo que necesitas rápidamente. También puedes personalizar los iconos de cada categoría desde el botón <Palette size={16} style={{ display: 'inline', verticalAlign: 'middle', color: 'var(--text-primary)' }} /> en la barra superior.
+                  {t('tour.search_desc')}
                 </p>
               </div>
             )
@@ -4434,10 +4596,10 @@ export default function App() {
             content: (
               <div style={{ marginBottom: '16px' }}>
                   <h3 style={{ fontSize: '1.45rem', fontWeight: 700, letterSpacing: '-0.02em', color: '#e2e8f0', marginBottom: '8px' }}>
-                    Sincronización en la Nube
+                    {t('tour.cloud_title')}
                   </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', lineHeight: '1.6', padding: '0 12px', textAlign: 'left' }}>
-                  Tus snippets se sincronizan automáticamente con la nube al iniciar sesión. Puedes acceder a ellos desde cualquier dispositivo. Los cambios se fusionan sin perder información.
+                  {t('tour.cloud_desc')}
                 </p>
               </div>
             )
@@ -4460,16 +4622,16 @@ export default function App() {
               <div style={{ display: 'flex', gap: '8px' }}>
                 {tourStep > 0 && (
                   <button className="btn-secondary" onClick={handlePrevTourStep} style={{ flex: 1, padding: '10px', borderRadius: '12px', fontSize: '0.9rem' }}>
-                    Anterior
+                    {t('common.previous')}
                   </button>
                 )}
                 {!isLast ? (
                   <button className="btn-primary" onClick={handleNextTourStep} style={{ flex: 1, padding: '12px 24px', fontSize: '0.95rem', borderRadius: '12px', background: 'linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 100%)', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)', fontWeight: 600, border: 'none', color: 'white', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-                    Siguiente
+                    {t('common.next')}
                   </button>
                 ) : (
                   <button className="btn-primary" onClick={handleCloseShortcutModal} style={{ flex: 1, padding: '12px 24px', fontSize: '0.95rem', borderRadius: '12px', background: 'linear-gradient(135deg, var(--color-primary) 0%, #8b5cf6 100%)', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.35)', fontWeight: 600, border: 'none', color: 'white', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-                    Comenzar a usar
+                    {t('common.start_using')}
                   </button>
                 )}
               </div>
@@ -4501,7 +4663,20 @@ export default function App() {
             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-primary)', color: 'white', width: '20px', height: '20px', borderRadius: '50%', fontSize: '0.75rem' }}>
               {selectedSnippetIds.length}
             </span>
-            <span>seleccionados</span>
+            <span>{t('common.selected')}</span>
+            <button
+              onClick={() => setSelectedSnippetIds([])}
+              title={t('common.deselect_all')}
+              style={{
+                background: 'none', border: 'none', color: 'var(--text-muted)',
+                cursor: 'pointer', padding: '2px', borderRadius: '4px',
+                display: 'flex', alignItems: 'center', marginLeft: '4px'
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+            >
+              <X size={14} />
+            </button>
           </div>
 
           <div style={{ width: '1px', height: '20px', backgroundColor: 'rgba(255, 255, 255, 0.1)' }} />
@@ -4510,7 +4685,7 @@ export default function App() {
             {/* Move to folder dropdown — custom styled */}
             {!isHomeView && getFoldersForCategory(activeCategory).length > 0 && (() => {
               const moveOptions = [
-                { value: '___root___', label: 'Raíz (Sin carpeta)' },
+                { value: '___root___', label: t('common.root_no_folder') },
                 ...getFoldersForCategory(activeCategory).map(f => ({ value: f, label: getFolderName(f) }))
               ];
               return (
@@ -4538,7 +4713,7 @@ export default function App() {
                     onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.10)'; }}
                   >
                     <FolderOpen size={12} />
-                    <span>Mover a...</span>
+                    <span>{t('bulk_actions.move_to')}</span>
                     <ChevronDown size={12} style={{ opacity: 0.6 }} />
                   </button>
 
@@ -4576,7 +4751,9 @@ export default function App() {
                               await Promise.all(moved.map(s => saveCloudSnippet(s)));
                             });
                             setSelectedSnippetIds([]);
-                            addToast(`${selectedSnippetIds.length} snippets movidos ${targetPath ? 'a "' + getFolderName(targetPath) + '"' : 'a la raíz'}`);
+                            addToast(targetPath
+  ? t('toasts.snippets_moved', { count: selectedSnippetIds.length, name: getFolderName(targetPath) })
+  : t('toasts.snippets_moved_root', { count: selectedSnippetIds.length }));
                             const dd = document.getElementById('move-folder-dd-menu');
                             if (dd) dd.style.display = 'none';
                           }}
@@ -4629,7 +4806,7 @@ export default function App() {
               onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
             >
               <Trash2 size={12} />
-              <span>Eliminar</span>
+              <span>{t('bulk_actions.delete')}</span>
             </button>
 
             {/* Clear Selection Button */}
@@ -4648,7 +4825,7 @@ export default function App() {
               }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
-              title="Desmarcar todos"
+              title={t('common.deselect_all')}
             >
               <X size={16} />
             </button>
@@ -4696,9 +4873,9 @@ export default function App() {
                 </div>
                 <div>
                   <h3 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-                    Actualización Lista
+                    {t('update_modal.title')}
                   </h3>
-                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>SnapCopy Desktop Engine</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{t('update_modal.subtitle')}</span>
                 </div>
               </div>
               <button className="action-icon-btn" onClick={() => setIsUpdateModalOpen(false)}>
@@ -4717,7 +4894,7 @@ export default function App() {
                 border: '1px solid rgba(255, 255, 255, 0.06)'
               }}>
                 <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                  Nueva versión disponible
+                  {t('update_modal.new_version')}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>v{pkg.version}</span>
@@ -4743,7 +4920,7 @@ export default function App() {
                   maxHeight: '180px', overflowY: 'auto'
                 }}>
                   <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px' }}>
-                    Novedades e historia de cambios
+                    {t('update_modal.release_notes')}
                   </div>
                   <div>
                     {formatReleaseNotes(updateAvailable.releaseNotes)}
@@ -4755,7 +4932,7 @@ export default function App() {
               {isDownloadingUpdate && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', borderRadius: '14px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    <span>Descargando nueva versión...</span>
+                    <span>{t('update_modal.downloading')}</span>
                     <span style={{ color: 'var(--color-primary)' }}>{downloadProgress || 0}%</span>
                   </div>
                   <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
@@ -4787,7 +4964,7 @@ export default function App() {
                   }}>
                     <Check size={16} />
                   </div>
-                  <span>La actualización está lista para ser aplicada.</span>
+                  <span>{t('update_modal.ready_text')}</span>
                 </div>
               )}
             </div>
@@ -4801,7 +4978,7 @@ export default function App() {
                     onClick={() => setIsUpdateModalOpen(false)}
                     style={{ padding: '11px 20px', borderRadius: '12px', fontSize: '0.86rem', fontWeight: 500 }}
                   >
-                    Más tarde
+                    {t('common.later')}
                   </button>
                   <button
                     className="btn-primary"
@@ -4814,7 +4991,7 @@ export default function App() {
                     }}
                   >
                     <Download size={16} />
-                    <span>Descargar e Instalar</span>
+                    <span>{t('update_modal.download_install')}</span>
                   </button>
                 </>
               )}
@@ -4832,7 +5009,7 @@ export default function App() {
                   }}
                 >
                   <RefreshCw size={18} />
-                  <span>Reiniciar e Instalar Ahora</span>
+                  <span>{t('update_modal.restart_install')}</span>
                 </button>
               )}
             </div>
@@ -4880,10 +5057,10 @@ export default function App() {
             </div>
 
             <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
-              SnapCopy está al día
+              {t('uptodate_modal.title')}
             </h3>
             <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: '1.45' }}>
-              Estás utilizando la versión más reciente disponible para tu sistema.
+              {t('uptodate_modal.description')}
             </p>
 
             <div style={{
@@ -4895,7 +5072,7 @@ export default function App() {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Shield size={16} style={{ color: '#34d399' }} />
-                <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Versión instalada</span>
+                <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{t('uptodate_modal.version_installed')}</span>
               </div>
               <span style={{
                 padding: '3px 12px', borderRadius: '20px',
@@ -4917,7 +5094,7 @@ export default function App() {
                 boxShadow: '0 4px 20px rgba(99, 102, 241, 0.35)'
               }}
             >
-              Entendido
+              {t('common.got_it')}
             </button>
           </div>
         </div>
