@@ -318,6 +318,15 @@ app.whenReady().then(() => {
     }
   });
 
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('Update not available:', info?.version);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-not-available', {
+        version: info?.version,
+      });
+    }
+  });
+
   autoUpdater.on('download-progress', (progressObj) => {
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('update-progress', {

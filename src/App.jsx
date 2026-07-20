@@ -189,6 +189,7 @@ export default function App() {
   const [isUpdateDownloaded, setIsUpdateDownloaded] = useState(false);
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isNoUpdateModalOpen, setIsNoUpdateModalOpen] = useState(false);
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -196,6 +197,11 @@ export default function App() {
       window.electronAPI.onUpdateAvailable((info) => {
         setUpdateAvailable(info);
         setIsUpdateModalOpen(true);
+      });
+    }
+    if (window.electronAPI.onUpdateNotAvailable) {
+      window.electronAPI.onUpdateNotAvailable(() => {
+        setIsNoUpdateModalOpen(true);
       });
     }
     if (window.electronAPI.onUpdateProgress) {
@@ -246,10 +252,8 @@ export default function App() {
     }
     addToast('Buscando actualizaciones...');
     const res = await window.electronAPI.checkForUpdates();
-    if (res && res.status === 'dev') {
-      addToast('Modo desarrollo — Las actualizaciones funcionan en la app instalada');
-    } else if (res && res.error) {
-      addToast('No hay actualizaciones pendientes');
+    if (res && (res.status === 'dev' || res.error || !res.updateInfo)) {
+      setIsNoUpdateModalOpen(true);
     }
   };
 
@@ -258,16 +262,63 @@ export default function App() {
     let clean = typeof notes === 'string' ? notes : String(notes);
     clean = clean.replace(/<[^>]*>/g, '');
     const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
-    return lines.map((line, idx) => {
-      let text = line.replace(/^[-*•]\s*/, '');
-      if (!text) return null;
-      return (
-        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
-          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-primary)', marginTop: '6px', flexShrink: 0 }} />
-          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{text}</span>
+    const items = [];
+
+    lines.forEach((line, idx) => {
+      if (/Novedades de SnapCopy/i.test(line) || /^#+\s*/.test(line)) return;
+
+      let text = line.replace(/^[-*•]\s*/, '').trim();
+      if (!text) return;
+
+      let title = '';
+      let body = text;
+      if (text.includes(':')) {
+        const parts = text.split(':');
+        title = parts[0].trim();
+        body = parts.slice(1).join(':').trim();
+      }
+
+      items.push(
+        <div key={idx} style={{
+          display: 'flex',
+          gap: '10px',
+          alignItems: 'flex-start',
+          padding: '10px 12px',
+          borderRadius: '10px',
+          background: 'rgba(255, 255, 255, 0.025)',
+          border: '1px solid rgba(255, 255, 255, 0.05)',
+          marginBottom: '8px',
+          transition: 'all 0.15s ease'
+        }}>
+          <div style={{
+            width: '22px',
+            height: '22px',
+            borderRadius: '6px',
+            background: 'rgba(99, 102, 241, 0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-primary)',
+            flexShrink: 0,
+            marginTop: '1px'
+          }}>
+            <Sparkles size={12} />
+          </div>
+          <div style={{ flexGrow: 1, fontSize: '0.83rem', lineHeight: '1.45' }}>
+            {title ? (
+              <>
+                <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{title}: </strong>
+                <span style={{ color: 'var(--text-secondary)' }}>{body}</span>
+              </>
+            ) : (
+              <span style={{ color: 'var(--text-secondary)' }}>{text}</span>
+            )}
+          </div>
         </div>
       );
     });
+
+    return items;
   };
 
   // When a category is explicitly set, exit home view
@@ -4604,39 +4655,50 @@ export default function App() {
           </div>
         </div>
       )}
-      {/* 8. MODAL DE ACTUALIZACIÓN DE APLICACIÓN DE ALTA ESTÉTICA */}
+      {/* 8. MODAL DE ACTUALIZACIÓN DE APLICACIÓN DE ALTA ESTÉTICA PREMIUM */}
       {isUpdateModalOpen && updateAvailable && (
         <div className="modal-backdrop" onClick={() => setIsUpdateModalOpen(false)}>
           <div
             className="modal-content"
             style={{
-              maxWidth: '460px',
-              backgroundColor: '#0b0f19',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '20px',
-              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
-              padding: '24px',
-              animation: 'fadeIn 0.2s ease-out'
+              maxWidth: '480px',
+              backgroundColor: '#0a0f1d',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '24px',
+              boxShadow: '0 30px 70px rgba(0, 0, 0, 0.85), 0 0 40px rgba(99, 102, 241, 0.15)',
+              padding: '28px',
+              animation: 'fadeIn 0.25s ease-out',
+              position: 'relative',
+              overflow: 'hidden'
             }}
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Top Glowing Ambient Light */}
+            <div style={{
+              position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)',
+              width: '240px', height: '120px', borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
+              pointerEvents: 'none', filter: 'blur(20px)'
+            }} />
+
             {/* Header */}
-            <div className="modal-header" style={{ marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="modal-header" style={{ marginBottom: '20px', paddingBottom: '16px', borderBottom: '1px solid rgba(255, 255, 255, 0.07)', position: 'relative' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                 <div style={{
-                  width: '38px', height: '38px', borderRadius: '12px',
-                  background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(168,85,247,0.2) 100%)',
-                  border: '1px solid rgba(99,102,241,0.3)',
+                  width: '46px', height: '46px', borderRadius: '14px',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(168,85,247,0.25) 100%)',
+                  border: '1px solid rgba(99,102,241,0.4)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--color-primary)'
+                  color: 'var(--color-primary)',
+                  boxShadow: '0 4px 15px rgba(99,102,241,0.2)'
                 }}>
-                  <Sparkles size={20} />
+                  <Sparkles size={22} />
                 </div>
                 <div>
-                  <h3 className="modal-title" style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
-                    Nueva Actualización
+                  <h3 className="modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
+                    Actualización Lista
                   </h3>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SnapCopy Desktop App</span>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>SnapCopy Desktop Engine</span>
                 </div>
               </div>
               <button className="action-icon-btn" onClick={() => setIsUpdateModalOpen(false)}>
@@ -4645,28 +4707,43 @@ export default function App() {
             </div>
 
             {/* Body */}
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Versión disponible:</span>
-                <span style={{
-                  padding: '3px 10px', borderRadius: '20px',
-                  backgroundColor: 'rgba(99, 102, 241, 0.15)',
-                  border: '1px solid rgba(99, 102, 241, 0.3)',
-                  color: '#818cf8', fontSize: '0.85rem', fontWeight: 700
-                }}>
-                  v{updateAvailable.version}
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
+              
+              {/* Version transition badge */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: 'rgba(15, 23, 42, 0.8)',
+                padding: '12px 18px', borderRadius: '14px',
+                border: '1px solid rgba(255, 255, 255, 0.06)'
+              }}>
+                <span style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  Nueva versión disponible
                 </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>v{pkg.version}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--color-primary)' }}>➔</span>
+                  <span style={{
+                    padding: '3px 12px', borderRadius: '20px',
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(168,85,247,0.25) 100%)',
+                    border: '1px solid rgba(99,102,241,0.4)',
+                    color: '#a5b4fc', fontSize: '0.85rem', fontWeight: 700,
+                    boxShadow: '0 0 12px rgba(99,102,241,0.2)'
+                  }}>
+                    v{updateAvailable.version}
+                  </span>
+                </div>
               </div>
 
+              {/* Release Notes List */}
               {updateAvailable.releaseNotes && (
                 <div style={{
-                  background: 'rgba(15, 23, 42, 0.6)',
-                  padding: '14px', borderRadius: '12px',
+                  background: 'rgba(15, 23, 42, 0.5)',
+                  padding: '14px', borderRadius: '14px',
                   border: '1px solid rgba(255, 255, 255, 0.06)',
-                  maxHeight: '150px', overflowY: 'auto'
+                  maxHeight: '180px', overflowY: 'auto'
                 }}>
-                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
-                    Notas de la versión
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px' }}>
+                    Novedades e historia de cambios
                   </div>
                   <div>
                     {formatReleaseNotes(updateAvailable.releaseNotes)}
@@ -4674,47 +4751,69 @@ export default function App() {
                 </div>
               )}
 
+              {/* Download Progress */}
               {isDownloadingUpdate && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '12px', background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    <span>Descargando paquetes...</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '14px', borderRadius: '14px', background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.2)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <span>Descargando nueva versión...</span>
                     <span style={{ color: 'var(--color-primary)' }}>{downloadProgress || 0}%</span>
                   </div>
-                  <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.08)', borderRadius: '4px', overflow: 'hidden' }}>
                     <div style={{
                       width: `${downloadProgress || 0}%`, height: '100%',
                       background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 100%)',
-                      borderRadius: '4px', transition: 'width 0.3s ease'
+                      borderRadius: '4px', transition: 'width 0.3s ease',
+                      boxShadow: '0 0 10px rgba(99, 102, 241, 0.5)'
                     }} />
                   </div>
                 </div>
               )}
 
+              {/* Update Downloaded Status Card */}
               {isUpdateDownloaded && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: 'var(--color-success)', fontSize: '0.85rem', fontWeight: 500 }}>
-                  <Check size={18} />
-                  <span>La actualización se ha descargado y está lista para instalar.</span>
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '14px 16px', borderRadius: '14px',
+                  background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
+                  border: '1px solid rgba(16, 185, 129, 0.35)',
+                  boxShadow: '0 4px 20px rgba(16, 185, 129, 0.15)',
+                  color: '#34d399', fontSize: '0.88rem', fontWeight: 600
+                }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    background: 'rgba(16, 185, 129, 0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Check size={16} />
+                  </div>
+                  <span>La actualización está lista para ser aplicada.</span>
                 </div>
               )}
             </div>
 
-            {/* Footer */}
-            <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+            {/* Footer Actions */}
+            <div className="modal-footer" style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end', position: 'relative' }}>
               {!isDownloadingUpdate && !isUpdateDownloaded && (
                 <>
                   <button
                     className="btn-secondary"
                     onClick={() => setIsUpdateModalOpen(false)}
-                    style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem' }}
+                    style={{ padding: '11px 20px', borderRadius: '12px', fontSize: '0.86rem', fontWeight: 500 }}
                   >
                     Más tarde
                   </button>
                   <button
                     className="btn-primary"
                     onClick={handleStartDownloadUpdate}
-                    style={{ padding: '10px 20px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+                    style={{
+                      padding: '11px 22px', borderRadius: '12px', fontSize: '0.86rem',
+                      display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600,
+                      background: 'linear-gradient(135deg, var(--color-primary) 0%, #a855f7 100%)',
+                      boxShadow: '0 4px 20px rgba(99, 102, 241, 0.35)'
+                    }}
                   >
-                    <Download size={15} />
+                    <Download size={16} />
                     <span>Descargar e Instalar</span>
                   </button>
                 </>
@@ -4723,13 +4822,103 @@ export default function App() {
                 <button
                   className="btn-primary"
                   onClick={handleInstallUpdate}
-                  style={{ width: '100%', padding: '12px', borderRadius: '10px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 700 }}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: '14px', fontSize: '0.95rem',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                    fontWeight: 700,
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    boxShadow: '0 6px 25px rgba(99, 102, 241, 0.4)',
+                    cursor: 'pointer'
+                  }}
                 >
-                  <RefreshCw size={16} />
+                  <RefreshCw size={18} />
                   <span>Reiniciar e Instalar Ahora</span>
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 9. MODAL DE APLICACIÓN AL DÍA / NO HAY ACTUALIZACIONES */}
+      {isNoUpdateModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsNoUpdateModalOpen(false)}>
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: '440px',
+              backgroundColor: '#0a0f1d',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              borderRadius: '24px',
+              boxShadow: '0 30px 70px rgba(0, 0, 0, 0.85), 0 0 40px rgba(16, 185, 129, 0.12)',
+              padding: '28px',
+              animation: 'fadeIn 0.25s ease-out',
+              position: 'relative',
+              textAlign: 'center',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Ambient Light Glow */}
+            <div style={{
+              position: 'absolute', top: '-50px', left: '50%', transform: 'translateX(-50%)',
+              width: '200px', height: '100px', borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0) 70%)',
+              pointerEvents: 'none', filter: 'blur(20px)'
+            }} />
+
+            {/* Shield Check Badge */}
+            <div style={{
+              width: '64px', height: '64px', borderRadius: '20px',
+              background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.15) 100%)',
+              border: '1px solid rgba(16, 185, 129, 0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#34d399', margin: '0 auto 16px',
+              boxShadow: '0 8px 25px rgba(16, 185, 129, 0.2)'
+            }}>
+              <Check size={32} />
+            </div>
+
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 6px', color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
+              SnapCopy está al día
+            </h3>
+            <p style={{ fontSize: '0.86rem', color: 'var(--text-secondary)', margin: '0 0 20px', lineHeight: '1.45' }}>
+              Estás utilizando la versión más reciente disponible para tu sistema.
+            </p>
+
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'rgba(15, 23, 42, 0.8)',
+              padding: '12px 18px', borderRadius: '14px',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Shield size={16} style={{ color: '#34d399' }} />
+                <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Versión instalada</span>
+              </div>
+              <span style={{
+                padding: '3px 12px', borderRadius: '20px',
+                background: 'rgba(16, 185, 129, 0.15)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                color: '#34d399', fontSize: '0.85rem', fontWeight: 700
+              }}>
+                v{pkg.version}
+              </span>
+            </div>
+
+            <button
+              className="btn-primary"
+              onClick={() => setIsNoUpdateModalOpen(false)}
+              style={{
+                width: '100%', padding: '13px', borderRadius: '14px', fontSize: '0.92rem',
+                fontWeight: 700, cursor: 'pointer',
+                background: 'linear-gradient(135deg, var(--color-primary) 0%, #a855f7 100%)',
+                boxShadow: '0 4px 20px rgba(99, 102, 241, 0.35)'
+              }}
+            >
+              Entendido
+            </button>
           </div>
         </div>
       )}
