@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveSnippets: (snippets) => ipcRenderer.invoke('save-snippets', snippets),
   copyToClipboard: (text) => ipcRenderer.invoke('copy-to-clipboard', text),
   openAuthUrl: (url) => ipcRenderer.invoke('open-auth-url', url),
+  setAutoStart: (enable) => ipcRenderer.invoke('set-auto-start', enable),
+  getAutoStart: () => ipcRenderer.invoke('get-auto-start'),
 
   // Auto-Updater IPC
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

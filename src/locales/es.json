@@ -57,6 +57,7 @@
     "sync_error": "Error al sincronizar con la nube: {{error}}",
     "auth_timeout": "Error al autenticar — tiempo de espera agotado",
     "auth_error": "Error al iniciar sesión",
+    "storage_error": "Error al guardar: el almacenamiento local está lleno",
     "session_closed": "Sesión cerrada",
     "copied": "\"{{title}}\" copiado al portapapeles",
     "workspace_min_one": "Debe haber al menos un espacio de trabajo.",
@@ -117,7 +118,8 @@
     "syncing_badge": "Sincronizando",
     "cloud_badge": "En la nube",
     "check_updates": "Buscar actualizaciones",
-    "sign_out": "Cerrar sesión"
+    "sign_out": "Cerrar sesión",
+    "auto_start": "Iniciar con Windows"
   },
   "breadcrumb": {
     "home": "Inicio"
@@ -200,6 +202,7 @@
   "folder_modal": {
     "manage_title": "Gestionar Carpeta",
     "rename_label": "Renombrar carpeta",
+    "path_label": "Ruta:",
     "delete_section": "Eliminar carpeta y subcarpetas",
     "delete_info": "Todos los snippets dentro de esta carpeta y sus subcarpetas se moverán a \"Sin carpeta\".",
     "delete_button": "Eliminar \"{{name}}\""
@@ -230,6 +233,7 @@
     "title": "Nueva Carpeta",
     "name_label": "Nombre de la Carpeta",
     "name_placeholder": "Ej. Git, Docker, Redes...",
+    "will_be_created_in": "Se creará en",
     "create_button": "Crear Carpeta"
   },
   "customization_modal": {
@@ -241,12 +245,13 @@
     "welcome_title": "¡Bienvenido a SnapCopy!",
     "welcome_desc": "Hemos configurado un atajo de teclado global. Úsalo desde cualquier aplicación en Windows para mostrar u ocultar la ventana:",
     "welcome_footnote": "¡Funciona de forma global, incluso con la app minimizada!",
+    "welcome_select_all": "Seleccionar / Deseleccionar todo",
     "create_title": "Crear Snippets",
     "create_desc": "Dentro de cada categoría, usa el botón + que aparece en la parte superior derecha para agregar un nuevo snippet. Puedes asignarle un título, categoría, carpeta y código. Los snippets se guardan automáticamente.",
     "organize_title": "Organizar con Carpetas",
-    "organize_desc": "Dentro de cada categoría, usa el botón ... para crear carpetas anidadas. Arrastra y suelta snippets o carpetas entre sí para reorganizar todo tu contenido.",
+    "organize_desc": "Dentro de cada categoría, usa el botón ... para crear carpetas anidadas. Arrastra y suelta snippets o carpetas entre sí para reorganizar todo tu contenido. Haz clic derecho sobre una carpeta para gestionarla o eliminarla. Los snippets pineados se identifican con una franja naranja a la izquierda.",
     "selection_title": "Selección y Acciones Múltiples",
-    "selection_desc": "Puedes marcar la casilla de un snippet o hacer Shift + Click sobre él para seleccionarlo rápidamente. Selecciona varios a la vez para arrastrarlos juntos a una carpeta. También aparecerá una Barra de Acciones Masivas en la parte inferior para moverlos o eliminarlos en lote.",
+    "selection_desc": "Puedes marcar la casilla de un snippet o hacer Shift + Click sobre él para seleccionarlo rápidamente. Usa Shift + A para seleccionar o deseleccionar todos los snippets visibles. Haz clic derecho sobre un snippet para editar, fijar o eliminar. Selecciona varios a la vez para arrastrarlos juntos a una carpeta. También aparecerá una Barra de Acciones Masivas en la parte inferior para moverlos o eliminarlos en lote.",
     "search_title": "Buscar y Explorar",
     "search_desc": "Usa la barra de búsqueda en la parte superior para filtrar snippets al instante. Navega por categorías en la barra lateral y expande las carpetas para encontrar lo que necesitas rápidamente. También puedes personalizar los iconos de cada categoría desde el botón ... en la barra superior.",
     "cloud_title": "Sincronización en la Nube",

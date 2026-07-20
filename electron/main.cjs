@@ -305,6 +305,13 @@ app.whenReady().then(() => {
     clipboard.writeText(text);
     return true;
   });
+  ipcMain.handle('set-auto-start', (event, enable) => {
+    app.setLoginItemSettings({ openAtLogin: enable });
+    return true;
+  });
+  ipcMain.handle('get-auto-start', () => {
+    return app.getLoginItemSettings().openAtLogin;
+  });
 
   // Auto-Updater handlers & listeners
   autoUpdater.on('update-available', (info) => {

@@ -57,6 +57,7 @@
     "sync_error": "Error syncing with cloud: {{error}}",
     "auth_timeout": "Authentication error — timeout",
     "auth_error": "Error signing in",
+    "storage_error": "Save error: local storage is full",
     "session_closed": "Session closed",
     "copied": "\"{{title}}\" copied to clipboard",
     "workspace_min_one": "There must be at least one workspace.",
@@ -117,7 +118,8 @@
     "syncing_badge": "Syncing",
     "cloud_badge": "In the cloud",
     "check_updates": "Check for updates",
-    "sign_out": "Sign out"
+    "sign_out": "Sign out",
+    "auto_start": "Start with Windows"
   },
   "breadcrumb": {
     "home": "Home"
@@ -200,6 +202,7 @@
   "folder_modal": {
     "manage_title": "Manage Folder",
     "rename_label": "Rename folder",
+    "path_label": "Path:",
     "delete_section": "Delete folder and subfolders",
     "delete_info": "All snippets within this folder and its subfolders will be moved to \"No folder\".",
     "delete_button": "Delete \"{{name}}\""
@@ -230,6 +233,7 @@
     "title": "New Folder",
     "name_label": "Folder Name",
     "name_placeholder": "E.g. Git, Docker, Networks...",
+    "will_be_created_in": "Will be created in",
     "create_button": "Create Folder"
   },
   "customization_modal": {
@@ -241,12 +245,13 @@
     "welcome_title": "Welcome to SnapCopy!",
     "welcome_desc": "We've set up a global keyboard shortcut. Use it from any Windows app to show or hide the window:",
     "welcome_footnote": "It works globally, even with the app minimized!",
+    "welcome_select_all": "Select / Deselect all",
     "create_title": "Create Snippets",
     "create_desc": "Inside each category, use the + button in the top right to add a new snippet. You can assign a title, category, folder, and code. Snippets are saved automatically.",
     "organize_title": "Organize with Folders",
-    "organize_desc": "Inside each category, use the ... button to create nested folders. Drag and drop snippets or folders between each other to reorganize all your content.",
+    "organize_desc": "Inside each category, use the ... button to create nested folders. Drag and drop snippets or folders between each other to reorganize all your content. Right-click on a folder to manage or delete it. Pinned snippets are marked with an orange stripe on the left.",
     "selection_title": "Selection and Bulk Actions",
-    "selection_desc": "You can check a snippet's box or Shift+Click on it to quickly select it. Select several at once to drag them together to a folder. A Bulk Actions Bar will also appear at the bottom to move or delete them in batch.",
+    "selection_desc": "You can check a snippet's box or Shift+Click on it to quickly select it. Use Shift + A to select or deselect all visible snippets. Right-click on a snippet to edit, pin, or delete it. Select several at once to drag them together to a folder. A Bulk Actions Bar will also appear at the bottom to move or delete them in batch.",
     "search_title": "Search and Explore",
     "search_desc": "Use the search bar at the top to filter snippets instantly. Navigate categories in the sidebar and expand folders to quickly find what you need. You can also customize each category's icons from the ... button in the top bar.",
     "cloud_title": "Cloud Sync",

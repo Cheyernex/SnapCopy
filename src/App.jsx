@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import pkg from '../package.json';
 import { 
   Plus, 
@@ -95,7 +95,8 @@ import {
   Columns,
   Grid,
   Rows,
-  Info
+  Info,
+  Power
 } from 'lucide-react';
 import { createSupabaseClient, getSupabase, isConfigured, onAuthStateChange, fetchCloudSnippets, saveCloudSnippet, deleteCloudSnippet, deleteCloudSnippetsByWorkspace, fetchUserSettings, saveUserSettings } from './supabase';
 import { useTranslation, Trans } from 'react-i18next';
@@ -187,6 +188,7 @@ export default function App() {
 
   // Context menu state
   const [contextMenu, setContextMenu] = useState(null);
+  const [autoStartEnabled, setAutoStartEnabled] = useState(false);
 
   // Close context menu on click or scroll
   useEffect(() => {
@@ -199,6 +201,19 @@ export default function App() {
       window.removeEventListener('scroll', close, true);
     };
   }, [contextMenu]);
+
+  useEffect(() => {
+    if (window.electronAPI && window.electronAPI.getAutoStart) {
+      window.electronAPI.getAutoStart().then(setAutoStartEnabled);
+    }
+  }, []);
+
+  const handleToggleAutoStart = async () => {
+    if (!window.electronAPI || !window.electronAPI.setAutoStart) return;
+    const next = !autoStartEnabled;
+    await window.electronAPI.setAutoStart(next);
+    setAutoStartEnabled(next);
+  };
 
   // Auto-Updater states
   const [updateAvailable, setUpdateAvailable] = useState(null);
@@ -370,13 +385,27 @@ export default function App() {
   const syncToCloud = async (fn) => {
     if (!cloudEnabled) return;
     setSyncing(true);
-    try { await fn(); } catch (e) { console.error('Cloud sync failed:', e); } finally { setSyncing(false); }
+    try { await fn(); } catch (e) {
+      console.error('Cloud sync failed:', e);
+      addToast(t('toasts.sync_error', { error: e.message }));
+    } finally { setSyncing(false); }
   };
 
   const addToast = (message) => {
     const id = Date.now().toString();
     setToasts(prev => [...prev, { id, message }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+  };
+
+  const safeSetItem = (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (e) {
+      console.error(`localStorage write failed for "${key}":`, e);
+      addToast(t('toasts.storage_error'));
+      return false;
+    }
   };
 
   const themes = {
@@ -469,7 +498,7 @@ export default function App() {
 
   const handleThemeChange = (t) => {
     setTheme(t);
-    localStorage.setItem('snapcopy_theme', t);
+    safeSetItem('snapcopy_theme', t);
     const updatedThemes = {
       ...workspaceThemes,
       [currentWorkspace]: t
@@ -507,8 +536,6 @@ export default function App() {
         setCloudEnabled(true);
         setInitializing(false);
         initialSessionChecked = true;
-        // Sync cloud snippets & settings on session restore silently
-        syncAllToCloud(localDataRef.current, false, true);
       }
     });
 
@@ -850,10 +877,13 @@ export default function App() {
         workspaceThemes: {}
       };
 
+      let loaded = null;
+
       if (window.electronAPI) {
         try {
           const data = await window.electronAPI.getSnippets();
           if (data && data.snippets) {
+            loaded = data;
             setSnippets(data.snippets || []);
             setWorkspaces(data.workspaces || ['General']);
             const curW = data.currentWorkspace || 'General';
@@ -875,6 +905,7 @@ export default function App() {
               workspaceColors: {},
               workspaceThemes: {}
             };
+            loaded = migrated;
             setSnippets(migrated.snippets);
             setWorkspaces(migrated.workspaces);
             setCurrentWorkspace(migrated.currentWorkspace);
@@ -883,6 +914,7 @@ export default function App() {
             await window.electronAPI.saveSnippets(migrated);
           } else {
             // Primer arranque
+            loaded = defaultData;
             setSnippets(defaultData.snippets);
             setWorkspaces(defaultData.workspaces);
             setCurrentWorkspace(defaultData.currentWorkspace);
@@ -893,6 +925,7 @@ export default function App() {
           }
         } catch (e) {
           console.error('Failed to load snippets via Electron:', e);
+          loaded = defaultData;
           setSnippets(defaultData.snippets);
           setWorkspaces(defaultData.workspaces);
           setCurrentWorkspace(defaultData.currentWorkspace);
@@ -907,6 +940,7 @@ export default function App() {
           try {
             const parsed = JSON.parse(local);
             if (parsed && parsed.snippets) {
+              loaded = parsed;
               setSnippets(parsed.snippets || []);
               setWorkspaces(parsed.workspaces || ['General']);
               const curW = parsed.currentWorkspace || 'General';
@@ -928,23 +962,26 @@ export default function App() {
                 workspaceColors: {},
                 workspaceThemes: {}
               };
+              loaded = migrated;
               setSnippets(migrated.snippets);
               setWorkspaces(migrated.workspaces);
               setCurrentWorkspace(migrated.currentWorkspace);
               setWorkspaceColors(migrated.workspaceColors);
               setWorkspaceThemes(migrated.workspaceThemes);
-              localStorage.setItem('quick_snippets', JSON.stringify(migrated));
+              safeSetItem('quick_snippets', JSON.stringify(migrated));
             } else {
+              loaded = defaultData;
               setSnippets(defaultData.snippets);
               setWorkspaces(defaultData.workspaces);
               setCurrentWorkspace(defaultData.currentWorkspace);
               setFolders({});
               setWorkspaceColors({});
               setWorkspaceThemes({});
-              localStorage.setItem('quick_snippets', JSON.stringify(defaultData));
+              safeSetItem('quick_snippets', JSON.stringify(defaultData));
             }
           } catch (err) {
             console.error('Failed to load storage:', err);
+            loaded = defaultData;
             setSnippets(defaultData.snippets);
             setWorkspaces(defaultData.workspaces);
             setCurrentWorkspace(defaultData.currentWorkspace);
@@ -953,13 +990,26 @@ export default function App() {
             setWorkspaceThemes({});
           }
         } else {
+          loaded = defaultData;
           setSnippets(defaultData.snippets);
           setWorkspaces(defaultData.workspaces);
           setCurrentWorkspace(defaultData.currentWorkspace);
           setFolders({});
           setWorkspaceColors({});
           setWorkspaceThemes({});
-          localStorage.setItem('quick_snippets', JSON.stringify(defaultData));
+          safeSetItem('quick_snippets', JSON.stringify(defaultData));
+        }
+      }
+
+      if (loaded) {
+        localDataRef.current = loaded;
+        if (isConfigured()) {
+          try {
+            const { data: { session } } = await getSupabase().auth.getSession();
+            if (session) {
+              syncAllToCloud(localDataRef.current, false, true);
+            }
+          } catch (e) {}
         }
       }
     };
@@ -987,10 +1037,10 @@ export default function App() {
     if (newCategoryIcons !== categoryIcons) setCategoryIcons(newCategoryIcons);
 
     if (newCategoriesOrder) {
-      localStorage.setItem('snapcopy_categories_order', JSON.stringify(newCategoriesOrder));
+      safeSetItem('snapcopy_categories_order', JSON.stringify(newCategoriesOrder));
     }
     if (newCategoryIcons) {
-      localStorage.setItem('snapcopy_category_icons', JSON.stringify(newCategoryIcons));
+      safeSetItem('snapcopy_category_icons', JSON.stringify(newCategoryIcons));
     }
 
     localDataRef.current = {
@@ -1013,7 +1063,7 @@ export default function App() {
         console.error('Failed to save snippets via Electron:', e);
       }
     } else {
-      localStorage.setItem('quick_snippets', JSON.stringify(dataObj));
+      safeSetItem('quick_snippets', JSON.stringify(dataObj));
     }
 
     // Sync non-snippet settings to Supabase (workspaces, folders, colors, themes, categories, icons)
@@ -1160,13 +1210,21 @@ export default function App() {
   };
 
   const handleCloseShortcutModal = () => {
-    localStorage.setItem('shortcut_info_shown', 'true');
+    safeSetItem('shortcut_info_shown', 'true');
     setIsShortcutModalOpen(false);
     setTourStep(0);
   };
 
   const handleNextTourStep = () => setTourStep(s => s + 1);
   const handlePrevTourStep = () => setTourStep(s => s - 1);
+
+  const adjustContextMenu = (e, itemCount) => {
+    const menuWidth = 180;
+    const estimatedHeight = 12 + itemCount * 36;
+    const x = Math.max(0, Math.min(e.clientX, window.innerWidth - menuWidth - 4));
+    const y = Math.max(0, Math.min(e.clientY, window.innerHeight - estimatedHeight - 4));
+    return { x, y };
+  };
 
   // Delete Snippet
   const handleDeleteSnippet = async () => {
@@ -1500,11 +1558,14 @@ export default function App() {
   });
 
   // Sorting Logic: Pinned snippets go to the top, then sort by id (newest first)
-  const sortedSnippets = [...filteredSnippets].sort((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    return b.id.localeCompare(a.id);
-  });
+  const sortedSnippets = useMemo(() =>
+    [...filteredSnippets].sort((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return b.id.localeCompare(a.id);
+    }),
+    [filteredSnippets]
+  );
 
   // Shift + A: select/deselect all visible snippets
   useEffect(() => {
@@ -1879,8 +1940,9 @@ export default function App() {
             onContextMenu={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              const pos = adjustContextMenu(e, 2);
               setContextMenu({
-                x: e.clientX, y: e.clientY,
+                x: pos.x, y: pos.y,
                 items: [
                   {
                     label: t('folder_modal.manage_title'), icon: 'Settings',
@@ -2248,8 +2310,9 @@ export default function App() {
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          const pos = adjustContextMenu(e, 3);
           setContextMenu({
-            x: e.clientX, y: e.clientY,
+            x: pos.x, y: pos.y,
             items: [
               { label: t('snippet.edit'), icon: 'Edit3', action: () => handleOpenEdit(e, snippet) },
               { label: snippet.pinned ? t('snippet.unpin') : t('snippet.pin'), icon: 'Pin', action: () => handleTogglePin(e, snippet.id) },
@@ -2368,8 +2431,9 @@ title={t('snippet.delete')}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          const pos = adjustContextMenu(e, 3);
           setContextMenu({
-            x: e.clientX, y: e.clientY,
+            x: pos.x, y: pos.y,
             items: [
               { label: t('snippet.edit'), icon: 'Edit3', action: () => handleOpenEdit(e, snippet) },
               { label: snippet.pinned ? t('snippet.unpin') : t('snippet.pin'), icon: 'Pin', action: () => handleTogglePin(e, snippet.id) },
@@ -2410,25 +2474,27 @@ title={t('snippet.delete')}
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexGrow: 1, minWidth: 0 }}>
-          <div 
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleSnippetSelection(snippet.id);
-            }}
-            style={{
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              color: isSelected ? 'var(--color-primary)' : 'var(--text-muted)',
-              opacity: isSelected ? 1 : (showAllCheckboxes ? 0.4 : undefined),
-              transition: 'opacity 0.2s ease',
-              flexShrink: 0
-            }}
-            className={!showAllCheckboxes && !isSelected ? "select-checkbox-hover-container" : ""}
-            title={isSelected ? "Desmarcar" : "Seleccionar"}
-          >
-            {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-          </div>
+          {!isHomeView && (
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSnippetSelection(snippet.id);
+              }}
+              style={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                color: isSelected ? 'var(--color-primary)' : 'var(--text-muted)',
+                opacity: isSelected ? 1 : (showAllCheckboxes ? 0.4 : undefined),
+                transition: 'opacity 0.2s ease',
+                flexShrink: 0
+              }}
+              className={!showAllCheckboxes && !isSelected ? "select-checkbox-hover-container" : ""}
+              title={isSelected ? t('common.deselect') : t('common.select')}
+            >
+              {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', width: '220px', flexShrink: 0, minWidth: 0 }}>
             <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>
@@ -2464,7 +2530,7 @@ title={t('snippet.delete')}
           <button
             className="action-icon-btn"
             onClick={(e) => handleTogglePin(e, snippet.id)}
-            title={snippet.pinned ? "Desfijar" : "Fijar al inicio"}
+            title={snippet.pinned ? t('snippet.unpin') : t('snippet.pin')}
             style={{ color: snippet.pinned ? 'var(--color-warning)' : 'var(--text-muted)' }}
           >
             <Pin size={14} style={{ fill: snippet.pinned ? 'var(--color-warning)' : 'none' }} />
@@ -2711,7 +2777,7 @@ title={t('snippet.delete')}
               <div 
                 className="workspace-trigger"
                 onClick={() => setIsWorkspaceDropdownOpen(!isWorkspaceDropdownOpen)}
-                title={`Espacio actual: ${currentWorkspace}`}
+                title={t('sidebar.current_workspace', { name: currentWorkspace })}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                   <Layers size={14} style={{ color: getWorkspaceColorValue(currentWorkspace) }} />
@@ -3273,6 +3339,43 @@ title={t('snippet.delete')}
                         <RefreshCw size={14} style={{ color: 'var(--color-primary)' }} />
                         <span>{t('header.check_updates')}</span>
                       </div>
+                      {window.electronAPI && (
+                        <div
+                          onClick={handleToggleAutoStart}
+                          style={{
+                            padding: '10px 16px', borderRadius: '8px',
+                            cursor: 'pointer', fontSize: '0.85rem',
+                            color: 'var(--text-primary)', fontWeight: 500,
+                            display: 'flex', alignItems: 'center', gap: '10px',
+                            transition: 'all 0.15s ease',
+                            marginBottom: '2px'
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                          onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                        >
+                          <Power size={14} style={{ color: 'var(--text-muted)' }} />
+                          <span style={{ flex: 1 }}>{t('header.auto_start')}</span>
+                          <div style={{
+                            width: '36px', height: '20px',
+                            borderRadius: '10px',
+                            backgroundColor: autoStartEnabled ? 'var(--color-primary)' : '#334155',
+                            position: 'relative',
+                            transition: 'all 0.2s ease',
+                            flexShrink: 0,
+                          }}>
+                            <div style={{
+                              width: '16px', height: '16px',
+                              borderRadius: '50%',
+                              backgroundColor: 'white',
+                              position: 'absolute',
+                              top: '2px',
+                              left: autoStartEnabled ? '18px' : '2px',
+                              transition: 'all 0.2s ease',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                            }} />
+                          </div>
+                        </div>
+                      )}
                       <div
                         onClick={() => { setProfileMenuOpen(false); handleSignOut(); }}
                         style={{
@@ -3976,7 +4079,7 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
             </div>
             <div className="modal-body">
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                Ruta: <strong>{folderSettingsCategory}</strong>
+                {t('folder_modal.path_label')}: <strong>{folderSettingsCategory}</strong>
                 {getParentPath(folderSettingsName) && <> / <strong>{getParentPath(folderSettingsName)}</strong></>}
                 {' / '}<strong style={{ color: 'var(--color-primary)' }}>{getFolderName(folderSettingsName)}</strong>
               </p>
@@ -4246,7 +4349,7 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
                   />
                 </div>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  Se creará en: <strong>{activeCategory}</strong>
+                  {t('add_folder_modal.will_be_created_in')}: <strong>{activeCategory}</strong>
                   {activeFolder && <> / <strong>{activeFolder}</strong></>}
                 </p>
               </div>
@@ -4285,7 +4388,7 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
                   {['es', 'en'].map(lang => (
                     <button
                       key={lang}
-                      onClick={() => { i18n.changeLanguage(lang); localStorage.setItem('snapcopy_language', lang); }}
+                      onClick={() => { i18n.changeLanguage(lang); safeSetItem('snapcopy_language', lang); }}
                       style={{
                         flex: 1,
                         padding: '8px 12px',
@@ -4519,6 +4622,13 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
                     <Sparkles size={12} style={{ color: 'var(--color-warning)' }} />
                     <span>{t('tour.welcome_footnote')}</span>
+                  </div>
+                  <div style={{ height: '1px', width: '60%', background: 'rgba(255,255,255,0.06)' }} />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <kbd style={{ display: 'inline-block', minWidth: '40px', padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--text-primary)', backgroundColor: '#1e293b', border: '1px solid rgba(255, 255, 255, 0.08)', borderBottom: '3px solid #0f172a', borderRadius: '8px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)' }}>Shift</kbd>
+                    <span style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '1rem' }}>+</span>
+                    <kbd style={{ display: 'inline-block', minWidth: '40px', padding: '8px 14px', fontFamily: 'var(--font-mono)', fontSize: '0.95rem', fontWeight: 'bold', color: '#ffffff', backgroundColor: 'var(--color-primary)', border: '1px solid rgba(255, 255, 255, 0.1)', borderBottom: '3px solid #4f46e5', borderRadius: '8px', boxShadow: '0 0 15px rgba(99, 102, 241, 0.4), 0 4px 6px rgba(0, 0, 0, 0.3)' }}>A</kbd>
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', marginLeft: '4px' }}>{t('tour.welcome_select_all')}</span>
                   </div>
                 </div>
               </>
