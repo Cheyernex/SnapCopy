@@ -397,16 +397,34 @@ export default function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {section.items.map((item, ii) => {
                   let cleanItem = item.trim();
-                  const colonIdx = cleanItem.indexOf(':');
                   let title = '';
                   let body = cleanItem;
-                  if (colonIdx > 0) {
-                    title = cleanItem.slice(0, colonIdx).trim();
-                    body = cleanItem.slice(colonIdx + 1).trim();
-                    // Sanitizar asteriscos ** al inicio/fin del título y cuerpo
-                    title = title.replace(/^\*\*|\*\*$/g, '').trim();
-                    body = body.replace(/^\*\*|\*\*$/g, '').trim();
+
+                  const fullMatch = cleanItem.match(/^(\*\*.*?\*\*)\s*(.*)/s);
+                  if (fullMatch) {
+                    let boldPart = fullMatch[1].slice(2, -2).trim();
+                    let rest = fullMatch[2].trim();
+                    const colonInBold = boldPart.indexOf(':');
+                    if (colonInBold > 0) {
+                      title = boldPart.slice(0, colonInBold).trim();
+                      body = (boldPart.slice(colonInBold + 1) + ' ' + rest).trim();
+                    } else if (rest.startsWith(':')) {
+                      title = boldPart;
+                      body = rest.slice(1).trim();
+                    } else {
+                      title = boldPart;
+                      body = rest;
+                    }
+                  } else {
+                    const colonIdx = cleanItem.indexOf(':');
+                    if (colonIdx > 0) {
+                      title = cleanItem.slice(0, colonIdx).trim();
+                      body = cleanItem.slice(colonIdx + 1).trim();
+                    }
                   }
+
+                  title = title.replaceAll('**', '').trim();
+                  body = body.replace(/^(\*\*|\*)\s*/, '').trim();
                   return (
                     <div key={ii} style={{
                       display: 'flex', gap: '8px', alignItems: 'flex-start',
