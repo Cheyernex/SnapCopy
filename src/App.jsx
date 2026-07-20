@@ -35,6 +35,7 @@ import {
   Hash,
   Bell,
   Shield,
+  CloudOff,
   Server as ServerIcon,
   Monitor,
   Palette,
@@ -3006,9 +3007,31 @@ export default function App() {
               </button>
             </div>
 
-            {/* Sync indicator */}
-            {cloudEnabled && syncing && (
-              <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite', color: 'var(--color-primary)' }} />
+            {/* Cloud Status Badge */}
+            {user && cloudEnabled && (
+              <div
+                title={syncing ? "Sincronizando cambios con la nube..." : "Sincronizado con Supabase"}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '5px 12px',
+                  borderRadius: '20px',
+                  backgroundColor: syncing ? 'rgba(99, 102, 241, 0.12)' : 'rgba(16, 185, 129, 0.12)',
+                  border: syncing ? '1px solid rgba(99, 102, 241, 0.3)' : '1px solid rgba(16, 185, 129, 0.3)',
+                  color: syncing ? 'var(--color-primary)' : 'var(--color-success)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {syncing ? (
+                  <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
+                ) : (
+                  <Cloud size={13} />
+                )}
+                <span>{syncing ? 'Sincronizando' : 'En la nube'}</span>
+              </div>
             )}
 
             {/* Profile Menu */}
