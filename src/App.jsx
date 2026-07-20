@@ -5272,7 +5272,11 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
           <div
             className="modal-content"
             style={{
-              maxWidth: '580px',
+              width: '90%',
+              maxWidth: '760px',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
               backgroundColor: '#0a0f1d',
               border: '1px solid rgba(255, 255, 255, 0.12)',
               borderRadius: '24px',
@@ -5287,9 +5291,9 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
             {/* Top Glowing Ambient Light */}
             <div style={{
               position: 'absolute', top: '-60px', left: '50%', transform: 'translateX(-50%)',
-              width: '240px', height: '120px', borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.3) 0%, rgba(168, 85, 247, 0) 70%)',
-              pointerEvents: 'none', filter: 'blur(20px)'
+              width: '320px', height: '140px', borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(168, 85, 247, 0) 70%)',
+              pointerEvents: 'none', filter: 'blur(24px)'
             }} />
 
             {/* Header */}
@@ -5318,7 +5322,7 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
             </div>
 
             {/* Body */}
-            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative', overflow: 'hidden', flex: 1 }}>
               
               {/* Version transition badge */}
               <div style={{
@@ -5349,11 +5353,12 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
               {updateAvailable.releaseNotes && (
                 <div style={{
                   background: 'rgba(15, 23, 42, 0.5)',
-                  padding: '14px', borderRadius: '14px',
+                  padding: '18px', borderRadius: '16px',
                   border: '1px solid rgba(255, 255, 255, 0.06)',
-                  maxHeight: '420px', overflowY: 'auto'
+                  flex: 1,
+                  maxHeight: '540px', overflowY: 'auto'
                 }}>
-                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '10px' }}>
+                  <div style={{ fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.8px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '12px' }}>
                     {t('update_modal.release_notes')}
                   </div>
                   <div>
