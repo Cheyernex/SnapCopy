@@ -1361,7 +1361,7 @@ export default function App() {
       }
 
       // 3. Enviar por email (vía Electron IPC, Resend API o FormSubmit fallback)
-      const resendApiKey = import.meta.env.VITE_RESEND_API_KEY || 're_S2bsxmJ8_MByHH4xdHuyTcgamEWWsGJ3u';
+      const resendApiKey = import.meta.env.VITE_RESEND_API_KEY;
       const resendFrom = import.meta.env.VITE_RESEND_FROM_EMAIL || 'SnapCopy <cmtdevsolutions@gestricon.com>';
 
       const attachments = suggestionImages.map(img => ({

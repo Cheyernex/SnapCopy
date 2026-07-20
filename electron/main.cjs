@@ -276,7 +276,10 @@ function createWindow() {
       } catch (e) {}
     }
 
-    if (!apiKey) apiKey = 're_S2bsxmJ8_MByHH4xdHuyTcgamEWWsGJ3u';
+    if (!apiKey) {
+      console.warn('Resend API key not found in process.env or .env');
+      return { success: false, error: 'Resend API key is missing' };
+    }
 
     try {
       const response = await fetch('https://api.resend.com/emails', {
