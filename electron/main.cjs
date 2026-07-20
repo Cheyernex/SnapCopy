@@ -7,6 +7,7 @@ const http = require('http');
 // Configure autoUpdater
 autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
+autoUpdater.forceDevUpdateConfig = true;
 
 // Disable GPU acceleration - prevents 0x80000003 crashes on corporate machines
 // where security policies (CrowdStrike, WDAC) block DXGI/GPU hardware access
@@ -345,7 +346,6 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle('check-for-updates', async () => {
-    if (isDev) return { status: 'dev' };
     try {
       const result = await autoUpdater.checkForUpdates();
       return { status: 'ok', updateInfo: result?.updateInfo };

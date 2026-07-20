@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import pkg from '../package.json';
 import { 
   Plus, 
   Search, 
@@ -211,7 +212,7 @@ export default function App() {
     if (window.electronAPI.onUpdateError) {
       window.electronAPI.onUpdateError((err) => {
         setIsDownloadingUpdate(false);
-        addToast('No se pudo descargar: el release aún no está publicado en GitHub');
+        addToast(`Error al descargar: ${err}`);
       });
     }
   }, []);
@@ -223,7 +224,7 @@ export default function App() {
       const res = await window.electronAPI.downloadUpdate();
       if (res && res.error) {
         setIsDownloadingUpdate(false);
-        addToast('Debes publicar primero el Release en GitHub con los instaladores');
+        addToast(`Error de descarga: ${res.error}`);
       }
     } catch (err) {
       setIsDownloadingUpdate(false);
@@ -438,8 +439,8 @@ export default function App() {
         setCloudEnabled(true);
         setInitializing(false);
         initialSessionChecked = true;
-        // Sync cloud snippets & settings on session restore
-        syncAllToCloud(localDataRef.current);
+        // Sync cloud snippets & settings on session restore silently
+        syncAllToCloud(localDataRef.current, false, true);
       }
     });
 
@@ -456,7 +457,7 @@ export default function App() {
         if (session) {
           setUser(session.user);
           setCloudEnabled(true);
-          syncAllToCloud(localDataRef.current);
+          syncAllToCloud(localDataRef.current, false, true);
         }
         setInitializing(false);
         const shown = localStorage.getItem('shortcut_info_shown');
@@ -487,12 +488,12 @@ export default function App() {
   }, []);
 
   // Sync all snippets and settings to/from cloud after login or session restore
-  const syncAllToCloud = async (snippetsData, showFullOverlay = false) => {
+  const syncAllToCloud = async (snippetsData, showFullOverlay = false, silent = false) => {
     if (isSyncingRef.current) return;
     isSyncingRef.current = true;
     if (showFullOverlay) {
       setSyncingFull(true);
-    } else {
+    } else if (!silent) {
       setSyncing(true);
     }
     try {
@@ -2947,7 +2948,7 @@ export default function App() {
             </button>
             {showAbout && (
               <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', background: '#1e293b', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px 18px', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 100, textAlign: 'center', lineHeight: '1.8', fontSize: '0.78rem' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>SnapCopy v1.0.0</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>SnapCopy v{pkg.version}</div>
                 <div style={{ color: 'var(--text-secondary)' }}>CMT DEV SOLUTIONS</div>
                 <div><a href="mailto:cmtdevsolutions@gestricon.com" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>cmtdevsolutions@gestricon.com</a></div>
               </div>
@@ -2970,7 +2971,7 @@ export default function App() {
             </button>
             {showAbout && (
               <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%', transform: 'translateX(-50%)', background: '#1e293b', border: '1px solid var(--border)', borderRadius: '10px', padding: '14px 18px', minWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', zIndex: 100, textAlign: 'center', lineHeight: '1.8', fontSize: '0.78rem' }}>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>SnapCopy v1.0.0</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.85rem' }}>SnapCopy v{pkg.version}</div>
                 <div style={{ color: 'var(--text-secondary)' }}>CMT DEV SOLUTIONS</div>
                 <div><a href="mailto:cmtdevsolutions@gestricon.com" style={{ color: 'var(--color-primary)', textDecoration: 'none' }}>cmtdevsolutions@gestricon.com</a></div>
               </div>
