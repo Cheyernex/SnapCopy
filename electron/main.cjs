@@ -388,11 +388,15 @@ app.whenReady().then(() => {
   createWindow();
   createTray();
 
-  // Check for updates automatically in production 5s after startup
+  // Check for updates automatically in production 5s after startup and every hour thereafter
   if (!isDev) {
     setTimeout(() => {
       autoUpdater.checkForUpdates().catch(err => console.error('Initial update check error:', err));
     }, 5000);
+
+    setInterval(() => {
+      autoUpdater.checkForUpdates().catch(err => console.error('Periodic update check error:', err));
+    }, 3600000); // every hour
   }
 
   // Register global hotkey (Ctrl + Alt + S) to show/hide the app
