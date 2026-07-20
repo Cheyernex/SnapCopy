@@ -263,6 +263,9 @@ export default function App() {
       if (res && res.error) {
         setIsDownloadingUpdate(false);
         addToast(t('toasts.download_error_res', { error: res.error }));
+      } else if (res && res.version) {
+        // If the re-check found a newer version, update the displayed version
+        setUpdateAvailable(prev => prev ? { ...prev, version: res.version } : prev);
       }
     } catch (err) {
       setIsDownloadingUpdate(false);
@@ -303,6 +306,20 @@ export default function App() {
     });
   };
 
+  const htmlToMarkdown = (html) => {
+    return html
+      .replace(/<h3[^>]*>(.+?)<\/h3>/gi, '### $1\n')
+      .replace(/<li[^>]*>(.+?)<\/li>/gi, '- $1\n')
+      .replace(/<strong[^>]*>(.+?)<\/strong>/gi, '**$1**')
+      .replace(/<code[^>]*>(.+?)<\/code>/gi, '`$1`')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'");
+  };
+
   const sectionColors = {
     added: { bg: 'rgba(16,185,129,0.12)', border: 'rgba(16,185,129,0.3)', text: '#34d399' },
     fixed: { bg: 'rgba(99,102,241,0.12)', border: 'rgba(99,102,241,0.3)', text: '#818cf8' },
@@ -314,6 +331,9 @@ export default function App() {
     if (!notes) return null;
     if (Array.isArray(notes)) {
       notes = notes.map(n => typeof n === 'string' ? n : (n.note || '')).join('\n');
+    }
+    if (/<[a-z][\s\S]*>/i.test(notes)) {
+      notes = htmlToMarkdown(notes);
     }
     const lines = notes.split('\n').map(l => l.trimEnd());
     const sections = [];

@@ -373,8 +373,13 @@ app.whenReady().then(() => {
 
   ipcMain.handle('download-update', async () => {
     try {
-      await autoUpdater.downloadUpdate();
-      return { success: true };
+      // Re-check for updates to ensure we download the absolute latest version
+      const checkResult = await autoUpdater.checkForUpdates();
+      if (checkResult?.updateInfo) {
+        await autoUpdater.downloadUpdate();
+        return { success: true, version: checkResult.updateInfo.version };
+      }
+      return { error: 'No update found' };
     } catch (err) {
       console.error('Failed to download update:', err);
       return { error: err.message };
