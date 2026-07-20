@@ -178,6 +178,7 @@ export default function App() {
   const [signingIn, setSigningIn] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isThemePanelOpen, setIsThemePanelOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('snapcopy_theme') || 'indigo');
 
   // Auto-Updater states

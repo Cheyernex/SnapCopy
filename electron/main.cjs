@@ -14,7 +14,6 @@ autoUpdater.autoInstallOnAppQuit = true;
 // Note: disableHardwareAcceleration + use-gl=swiftshader forces Chromium
 // to use software-only rendering (CPU) rather than touching DXGI/D3D11
 app.disableHardwareAcceleration();
-app.commandLine.appendSwitch('use-gl', 'swiftshader');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let mainWindow;
@@ -133,7 +132,6 @@ function createTray() {
 
 function startProductionServer() {
   const distPath = path.resolve(__dirname, '..', 'dist');
-  const port = 5173;
   const mimeTypes = {
     '.html': 'text/html',
     '.js': 'application/javascript',
@@ -168,15 +166,20 @@ function startProductionServer() {
     });
   });
 
-  server.listen(port, '127.0.0.1', () => {
-    console.log(`SnapCopy server running at http://127.0.0.1:${port}`);
-    mainWindow.loadURL(`http://127.0.0.1:${port}`);
+  server.listen(0, '127.0.0.1', () => {
+    const assignedPort = server.address().port;
+    console.log(`SnapCopy server running at http://127.0.0.1:${assignedPort}`);
+    if (mainWindow) {
+      mainWindow.loadURL(`http://127.0.0.1:${assignedPort}`);
+    }
   });
 
   server.on('error', (err) => {
-    console.error(`Failed to start server on port ${port}:`, err);
-    const indexPath = path.resolve(__dirname, '..', 'dist', 'index.html');
-    mainWindow.loadFile(indexPath);
+    console.error('Failed to start production server:', err);
+    if (mainWindow) {
+      const indexPath = path.resolve(__dirname, '..', 'dist', 'index.html');
+      mainWindow.loadFile(indexPath);
+    }
   });
 }
 
