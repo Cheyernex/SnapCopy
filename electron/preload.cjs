@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openAuthUrl: (url) => ipcRenderer.invoke('open-auth-url', url),
   setAutoStart: (enable) => ipcRenderer.invoke('set-auto-start', enable),
   getAutoStart: () => ipcRenderer.invoke('get-auto-start'),
+  sendEmail: (data) => ipcRenderer.invoke('send-email', data),
 
   // Auto-Updater IPC
   checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),

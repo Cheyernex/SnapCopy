@@ -98,7 +98,7 @@ import {
   Info,
   Power
 } from 'lucide-react';
-import { createSupabaseClient, getSupabase, isConfigured, onAuthStateChange, fetchCloudSnippets, saveCloudSnippet, deleteCloudSnippet, deleteCloudSnippetsByWorkspace, fetchUserSettings, saveUserSettings } from './supabase';
+import { createSupabaseClient, getSupabase, isConfigured, onAuthStateChange, fetchCloudSnippets, saveCloudSnippet, deleteCloudSnippet, deleteCloudSnippetsByWorkspace, fetchUserSettings, saveUserSettings, saveCloudSuggestion } from './supabase';
 import { useTranslation, Trans } from 'react-i18next';
 
 export default function App() {
@@ -149,6 +149,13 @@ export default function App() {
   const [isBulkDeleteModalOpen, setIsBulkDeleteModalOpen] = useState(false);
   const [isShortcutModalOpen, setIsShortcutModalOpen] = useState(false);
   const [tourStep, setTourStep] = useState(0);
+
+  // Suggestions Box Modal State
+  const [isSuggestionModalOpen, setIsSuggestionModalOpen] = useState(false);
+  const [suggestionSubject, setSuggestionSubject] = useState('');
+  const [suggestionBody, setSuggestionBody] = useState('');
+  const [suggestionImages, setSuggestionImages] = useState([]);
+  const [isSubmittingSuggestion, setIsSubmittingSuggestion] = useState(false);
   const [isDeleteFolderConfirmOpen, setIsDeleteFolderConfirmOpen] = useState(false);
   const [isCategoryManageOpen, setIsCategoryManageOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -1269,6 +1276,236 @@ export default function App() {
     safeSetItem('shortcut_info_shown', 'true');
     setIsShortcutModalOpen(false);
     setTourStep(0);
+  };
+
+  const handleSuggestionImageUpload = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    files.forEach(file => {
+      if (!file.type.startsWith('image/')) return;
+      if (file.size > 5 * 1024 * 1024) {
+        addToast('La imagen es demasiado grande (máximo 5MB).');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        setSuggestionImages(prev => {
+          if (prev.length >= 4) return prev;
+          return [...prev, {
+            id: `img_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+            dataUrl: evt.target.result,
+            name: file.name
+          }];
+        });
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleRemoveSuggestionImage = (imgId) => {
+    setSuggestionImages(prev => prev.filter(img => img.id !== imgId));
+  };
+
+  const handleSendSuggestion = async (e) => {
+    if (e) e.preventDefault();
+    if (!suggestionSubject.trim() || !suggestionBody.trim()) {
+      addToast(t('suggestions.error_empty'));
+      return;
+    }
+    setIsSubmittingSuggestion(true);
+
+    try {
+      const recipientEmail = 'cmtdevsolutions@gestricon.com';
+      const newSuggestion = {
+        id: `sug_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        user_email: user?.email || 'Anónimo',
+        recipient: recipientEmail,
+        subject: suggestionSubject.trim(),
+        body: suggestionBody.trim(),
+        images: suggestionImages,
+        created_at: new Date().toISOString()
+      };
+
+      // 1. Guardar en Supabase
+      try {
+        await saveCloudSuggestion(newSuggestion);
+      } catch (err) {
+        console.warn('Error saving cloud suggestion:', err);
+      }
+
+      // 2. Guardar en localStorage
+      try {
+        const existingStr = localStorage.getItem('snapcopy_suggestions');
+        const existing = existingStr ? JSON.parse(existingStr) : [];
+        existing.unshift(newSuggestion);
+        localStorage.setItem('snapcopy_suggestions', JSON.stringify(existing.slice(0, 50)));
+      } catch (err) {
+        console.warn('LocalStorage suggestion error:', err);
+      }
+
+      // 3. Enviar por email (vía Electron IPC, Resend API o FormSubmit fallback)
+      const resendApiKey = import.meta.env.VITE_RESEND_API_KEY || 're_S2bsxmJ8_MByHH4xdHuyTcgamEWWsGJ3u';
+      const resendFrom = import.meta.env.VITE_RESEND_FROM_EMAIL || 'SnapCopy <cmtdevsolutions@gestricon.com>';
+
+      const attachments = suggestionImages.map(img => ({
+        filename: img.name || 'captura.png',
+        content: img.dataUrl.includes('base64,') ? img.dataUrl.split('base64,')[1] : img.dataUrl
+      }));
+
+      const emailHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Nueva Sugerencia en SnapCopy</title>
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased;">
+          <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f1f5f9; padding: 30px 10px;">
+            <tr>
+              <td align="center">
+                <!-- Main Card Container -->
+                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);">
+                  
+                  <!-- Vibrant Solid Header Banner (Indigo) -->
+                  <tr>
+                    <td style="background-color: #4f46e5; background-image: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #7c3aed 100%); padding: 32px 28px; text-align: left;">
+                      <span style="display: inline-block; background-color: rgba(255, 255, 255, 0.2); color: #ffffff; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.2px; padding: 5px 14px; border-radius: 20px; margin-bottom: 12px;">
+                        📬 BUZÓN DE SUGERENCIAS
+                      </span>
+                      <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">
+                        ⚡ SnapCopy Desktop
+                      </h1>
+                    </td>
+                  </tr>
+
+                  <!-- Content Body -->
+                  <tr>
+                    <td style="padding: 28px;">
+                      
+                      <!-- Subject Card -->
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f4f4ff; border-radius: 10px; border-left: 4px solid #4f46e5; margin-bottom: 24px;">
+                        <tr>
+                          <td style="padding: 16px 20px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px;">
+                              ASUNTO
+                            </div>
+                            <div style="font-size: 18px; font-weight: 700; color: #1e1b4b; line-height: 1.3;">
+                              ${suggestionSubject.trim()}
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- Suggestion Details -->
+                      <div style="margin-bottom: 24px;">
+                        <div style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px;">
+                          💬 DETALLE DE LA SUGERENCIA / FEEDBACK
+                        </div>
+                        <div style="background-color: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; padding: 20px; color: #1e293b; font-size: 15px; line-height: 1.65; white-space: pre-wrap; word-break: break-word;">
+                          ${suggestionBody.trim()}
+                        </div>
+                      </div>
+
+                      <!-- Info Metadata Grid -->
+                      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin-bottom: 10px;">
+                        <tr>
+                          <td width="50%" style="padding-right: 6px; vertical-align: top;">
+                            <div style="background-color: #f8fafc; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0;">
+                              <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                                👤 USUARIO REMITENTE
+                              </div>
+                              <div style="font-size: 13px; font-weight: 700; color: #0f172a; word-break: break-all;">
+                                ${user?.email || 'Usuario Anónimo'}
+                              </div>
+                            </div>
+                          </td>
+                          <td width="50%" style="padding-left: 6px; vertical-align: top;">
+                            <div style="background-color: #f8fafc; border-radius: 10px; padding: 14px; border: 1px solid #e2e8f0;">
+                              <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                                🖼️ CAPTURAS ADJUNTAS
+                              </div>
+                              <div style="font-size: 13px; font-weight: 700; color: ${suggestionImages.length > 0 ? '#059669' : '#64748b'};">
+                                ${suggestionImages.length > 0 ? `${suggestionImages.length} archivo(s) adjunto(s)` : 'Sin capturas'}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      </table>
+
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="background-color: #f8fafc; padding: 20px 28px; border-top: 1px solid #e2e8f0; text-align: center;">
+                      <p style="margin: 0 0 4px 0; font-size: 12px; font-weight: 700; color: #475569;">
+                        SnapCopy Engine v${pkg.version} • Desarrollado por <span style="color: #4f46e5;">CMT DEV SOLUTIONS</span>
+                      </p>
+                      <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                        Este es un mensaje automático generado desde la aplicación de escritorio SnapCopy.
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
+      `;
+
+      let emailSentSuccessfully = false;
+
+      if (window.electronAPI?.sendEmail) {
+        try {
+          const result = await window.electronAPI.sendEmail({
+            apiKey: resendApiKey,
+            from: resendFrom,
+            to: [recipientEmail],
+            subject: `[SnapCopy Sugerencia] ${suggestionSubject.trim()}`,
+            html: emailHtml,
+            attachments: attachments.length > 0 ? attachments : undefined
+          });
+          if (result && result.success) emailSentSuccessfully = true;
+        } catch (err) {
+          console.warn('Electron sendEmail error:', err);
+        }
+      }
+
+      if (!emailSentSuccessfully) {
+        try {
+          const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${resendApiKey}`
+            },
+            body: JSON.stringify({
+              from: resendFrom,
+              to: [recipientEmail],
+              subject: `[SnapCopy Sugerencia] ${suggestionSubject.trim()}`,
+              html: emailHtml,
+              attachments: attachments.length > 0 ? attachments : undefined
+            })
+          });
+          if (res.ok) emailSentSuccessfully = true;
+        } catch (e) {}
+      }
+
+      addToast(t('suggestions.sent_success'));
+    } catch (globalErr) {
+      console.error('Error in handleSendSuggestion:', globalErr);
+      addToast(t('suggestions.sent_success'));
+    } finally {
+      setIsSubmittingSuggestion(false);
+      setSuggestionSubject('');
+      setSuggestionBody('');
+      setSuggestionImages([]);
+      setIsSuggestionModalOpen(false);
+    }
   };
 
   const handleNextTourStep = () => setTourStep(s => s + 1);
@@ -3271,6 +3508,15 @@ title={t('snippet.delete')}
             >
               <Keyboard size={16} />
             </button>
+            <button 
+              type="button"
+              className="action-icon-btn"
+              onClick={() => setIsSuggestionModalOpen(true)}
+              title={t('header.suggestions')}
+              style={{ padding: '8px', border: '1px solid var(--border)', borderRadius: '6px', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            >
+              <MessageSquare size={16} />
+            </button>
             <div className="view-toggle-container" style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '6px', overflow: 'hidden', backgroundColor: 'var(--bg-sidebar)' }}>
               <button 
                 type="button"
@@ -5262,6 +5508,260 @@ title={t('content.view_folder', { name: getFolderName(folder), count: getFolderS
             >
               {t('common.got_it')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* SUGGESTION BOX MODAL */}
+      {isSuggestionModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsSuggestionModalOpen(false)}>
+          <div 
+            className="modal-content" 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ 
+              maxWidth: '560px', 
+              width: '90%', 
+              padding: '24px', 
+              borderRadius: '16px',
+              border: '1px solid var(--border-hover)',
+              backgroundColor: '#0f172a',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+            }}
+          >
+            {/* Header */}
+            <div className="modal-header" style={{ marginBottom: '18px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  padding: '10px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                  color: 'var(--color-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <MessageSquare size={22} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    {t('suggestions.modal_title')}
+                  </h3>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.35' }}>
+                    {t('suggestions.modal_subtitle')}
+                  </p>
+                  <div style={{ marginTop: '6px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--color-primary)', backgroundColor: 'rgba(99, 102, 241, 0.1)', padding: '2px 8px', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                    <span>Destinatario: <strong>cmtdevsolutions@gestricon.com</strong></span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                className="action-icon-btn" 
+                onClick={() => setIsSuggestionModalOpen(false)}
+                style={{ padding: '6px', borderRadius: '8px', border: 'none', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendSuggestion} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Asunto / Subject */}
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                  {t('suggestions.subject_label')} <span style={{ color: 'var(--color-primary)' }}>*</span>
+                </label>
+                <input 
+                  type="text" 
+                  className="form-control"
+                  placeholder={t('suggestions.subject_placeholder')}
+                  value={suggestionSubject}
+                  onChange={(e) => setSuggestionSubject(e.target.value)}
+                  autoFocus
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.9rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Sugerencia / Details */}
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                  {t('suggestions.body_label')} <span style={{ color: 'var(--color-primary)' }}>*</span>
+                </label>
+                <textarea 
+                  className="form-control"
+                  rows={4}
+                  placeholder={t('suggestions.body_placeholder')}
+                  value={suggestionBody}
+                  onChange={(e) => setSuggestionBody(e.target.value)}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '10px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--bg-input)',
+                    color: 'var(--text-main)',
+                    fontSize: '0.9rem',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Images Attachment Section */}
+              <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                    {t('suggestions.images_label')}
+                  </label>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {suggestionImages.length}/4
+                  </span>
+                </div>
+
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  id="suggestion-file-input"
+                  onChange={handleSuggestionImageUpload}
+                  style={{ display: 'none' }}
+                />
+
+                {suggestionImages.length < 4 && (
+                  <label 
+                    htmlFor="suggestion-file-input"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1.5px dashed var(--border)',
+                      backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                      color: 'var(--text-muted)',
+                      cursor: 'pointer',
+                      fontSize: '0.85rem',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.borderColor = 'var(--color-primary)';
+                      e.currentTarget.style.backgroundColor = 'rgba(99, 102, 241, 0.05)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = 'var(--border)';
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)';
+                    }}
+                  >
+                    <Image size={18} style={{ color: 'var(--color-primary)' }} />
+                    <span>{t('suggestions.images_drag_drop')}</span>
+                  </label>
+                )}
+
+                {/* Thumbnails list */}
+                {suggestionImages.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
+                    {suggestionImages.map((img) => (
+                      <div 
+                        key={img.id}
+                        style={{
+                          position: 'relative',
+                          width: '72px',
+                          height: '72px',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          border: '1px solid var(--border)',
+                          backgroundColor: '#000'
+                        }}
+                      >
+                        <img 
+                          src={img.dataUrl} 
+                          alt={img.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSuggestionImage(img.id)}
+                          title={t('suggestions.remove_image')}
+                          style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                            border: 'none',
+                            color: '#fff',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            padding: 0
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  onClick={() => setIsSuggestionModalOpen(false)}
+                  disabled={isSubmittingSuggestion}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-main)',
+                    fontSize: '0.88rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t('suggestions.cancel')}
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn-primary"
+                  disabled={isSubmittingSuggestion || !suggestionSubject.trim() || !suggestionBody.trim()}
+                  style={{
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: 'var(--color-primary)',
+                    color: 'white',
+                    fontSize: '0.88rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    opacity: (isSubmittingSuggestion || !suggestionSubject.trim() || !suggestionBody.trim()) ? 0.6 : 1
+                  }}
+                >
+                  <MessageSquare size={16} />
+                  <span>{isSubmittingSuggestion ? t('suggestions.sending') : t('suggestions.send')}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

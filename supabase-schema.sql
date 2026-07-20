@@ -93,3 +93,30 @@ create trigger handle_user_settings_updated_at
   before update on public.user_settings
   for each row
   execute function moddatetime(updated_at);
+
+-- 7. Suggestions table (Feedback & Suggestions Box)
+create table if not exists public.suggestions (
+  id text primary key,
+  user_id uuid references auth.users(id) on delete set null,
+  user_email text,
+  subject text not null,
+  body text not null,
+  images jsonb default '[]'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+-- RLS for suggestions
+alter table public.suggestions enable row level security;
+
+drop policy if exists "Anyone authenticated or anonymous can create suggestions" on public.suggestions;
+create policy "Anyone authenticated or anonymous can create suggestions"
+  on public.suggestions
+  for insert
+  with check (true);
+
+drop policy if exists "Users can view own suggestions" on public.suggestions;
+create policy "Users can view own suggestions"
+  on public.suggestions
+  for select
+  using (user_id is null or auth.uid() = user_id);
+

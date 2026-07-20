@@ -119,7 +119,8 @@
     "cloud_badge": "En la nube",
     "check_updates": "Buscar actualizaciones",
     "sign_out": "Cerrar sesión",
-    "auto_start": "Iniciar con Windows"
+    "auto_start": "Iniciar con Windows",
+    "suggestions": "Buzón de sugerencias"
   },
   "breadcrumb": {
     "home": "Inicio"
@@ -285,5 +286,23 @@
   "languages": {
     "es": "Español",
     "en": "English"
+  },
+  "suggestions": {
+    "button_title": "Buzón de sugerencias",
+    "modal_title": "Buzón de Sugerencias y Comentarios",
+    "modal_subtitle": "¿Tienes alguna idea para mejorar SnapCopy o encontraste algún problema? ¡Déjanos tu sugerencia!",
+    "subject_label": "Asunto",
+    "subject_placeholder": "Ej. Agregar etiquetas de colores, opción de exportar en PDF...",
+    "body_label": "Sugerencia / Detalle",
+    "body_placeholder": "Describe tu idea o sugerencia con el mayor detalle posible...",
+    "images_label": "Adjuntar Imágenes (opcional)",
+    "images_drag_drop": "Haz clic o arrastra imágenes aquí para adjuntarlas",
+    "images_limit": "Puedes subir hasta 4 imágenes (PNG, JPG, WebP)",
+    "cancel": "Cancelar",
+    "send": "Enviar Sugerencia",
+    "sending": "Enviando...",
+    "sent_success": "¡Gracias por tu sugerencia! La hemos recibido correctamente.",
+    "error_empty": "Por favor, completa el asunto y el cuerpo de la sugerencia.",
+    "remove_image": "Eliminar imagen"
   }
 }

@@ -142,7 +142,43 @@ export async function saveUserSettings(settings) {
       console.warn('Could not save user settings:', error.message)
     }
   } catch (err) {
-    console.warn('saveUserSettings error:', err)
+    console.warn('saveCloudUserSettings error:', err)
   }
 }
+
+/**
+ * Save a user suggestion / feedback to Supabase (suggestions table).
+ * @param {Object} suggestion - { id, subject, body, images, user_email, created_at }
+ */
+export async function saveCloudSuggestion(suggestion) {
+  try {
+    if (!isConfigured()) return null
+    const client = getSupabase()
+    const { data: { user } } = await client.auth.getUser()
+
+    const row = {
+      id: suggestion.id,
+      user_id: user ? user.id : null,
+      user_email: user ? user.email : (suggestion.user_email || 'Anónimo'),
+      subject: suggestion.subject,
+      body: suggestion.body,
+      images: suggestion.images || [],
+      created_at: suggestion.created_at || new Date().toISOString()
+    }
+
+    const { error } = await client
+      .from('suggestions')
+      .insert(row)
+
+    if (error) {
+      console.warn('Could not save cloud suggestion:', error.message)
+      return null
+    }
+    return true
+  } catch (err) {
+    console.warn('saveCloudSuggestion error:', err)
+    return null
+  }
+}
+
 

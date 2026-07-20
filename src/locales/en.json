@@ -119,7 +119,8 @@
     "cloud_badge": "In the cloud",
     "check_updates": "Check for updates",
     "sign_out": "Sign out",
-    "auto_start": "Start with Windows"
+    "auto_start": "Start with Windows",
+    "suggestions": "Suggestion Box"
   },
   "breadcrumb": {
     "home": "Home"
@@ -283,7 +284,25 @@
     "react_title": "Template - React Functional Component"
   },
   "languages": {
-    "es": "Spanish",
+    "es": "Español",
     "en": "English"
+  },
+  "suggestions": {
+    "button_title": "Suggestion Box",
+    "modal_title": "Suggestions & Feedback Box",
+    "modal_subtitle": "Have an idea to improve SnapCopy or found an issue? Leave us your feedback!",
+    "subject_label": "Subject",
+    "subject_placeholder": "E.g., Add color tags, option to export as PDF...",
+    "body_label": "Suggestion / Details",
+    "body_placeholder": "Describe your idea or feedback in as much detail as possible...",
+    "images_label": "Attach Images (optional)",
+    "images_drag_drop": "Click or drag images here to attach",
+    "images_limit": "You can upload up to 4 images (PNG, JPG, WebP)",
+    "cancel": "Cancel",
+    "send": "Send Suggestion",
+    "sending": "Sending...",
+    "sent_success": "Thank you for your feedback! We have received it successfully.",
+    "error_empty": "Please fill out both the subject and the details of your suggestion.",
+    "remove_image": "Remove image"
   }
 }

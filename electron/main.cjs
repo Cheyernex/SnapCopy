@@ -259,6 +259,53 @@ function createWindow() {
     });
   });
 
+  ipcMain.handle('send-email', async (event, emailData) => {
+    let apiKey = process.env.VITE_RESEND_API_KEY || emailData.apiKey;
+    let fromEmail = process.env.VITE_RESEND_FROM_EMAIL || emailData.from || 'cmtdevsolutions@gestricon.com';
+
+    if (!apiKey) {
+      try {
+        const envPath = path.join(__dirname, '..', '.env');
+        if (fs.existsSync(envPath)) {
+          const envContent = fs.readFileSync(envPath, 'utf8');
+          const keyMatch = envContent.match(/VITE_RESEND_API_KEY=(.+)/);
+          if (keyMatch && keyMatch[1]) apiKey = keyMatch[1].trim();
+          const fromMatch = envContent.match(/VITE_RESEND_FROM_EMAIL=(.+)/);
+          if (fromMatch && fromMatch[1]) fromEmail = fromMatch[1].trim();
+        }
+      } catch (e) {}
+    }
+
+    if (!apiKey) apiKey = 're_S2bsxmJ8_MByHH4xdHuyTcgamEWWsGJ3u';
+
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: emailData.to || ['cmtdevsolutions@gestricon.com'],
+          subject: emailData.subject,
+          html: emailData.html,
+          attachments: emailData.attachments
+        })
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        console.error('Resend API Error:', resData);
+        return { success: false, error: resData.message || JSON.stringify(resData) };
+      }
+      return { success: true, data: resData };
+    } catch (err) {
+      console.error('Failed to send email via Resend in main process:', err);
+      return { success: false, error: err.message };
+    }
+  });
+
   mainWindow.setMenuBarVisibility(false);
 
   if (isDev) {
