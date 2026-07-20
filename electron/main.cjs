@@ -1,7 +1,12 @@
 const { app, BrowserWindow, ipcMain, clipboard, globalShortcut, Tray, Menu, nativeImage, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
+
+// Configure autoUpdater
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
 
 // Disable GPU acceleration - prevents 0x80000003 crashes on corporate machines
 // where security policies (CrowdStrike, WDAC) block DXGI/GPU hardware access
@@ -297,8 +302,79 @@ app.whenReady().then(() => {
     return true;
   });
 
+  // Auto-Updater handlers & listeners
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info.version);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-available', {
+        version: info.version,
+        releaseNotes: info.releaseNotes,
+        releaseDate: info.releaseDate,
+      });
+    }
+  });
+
+  autoUpdater.on('download-progress', (progressObj) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-progress', {
+        percent: Math.round(progressObj.percent || 0),
+        bytesPerSecond: progressObj.bytesPerSecond || 0,
+        transferred: progressObj.transferred || 0,
+        total: progressObj.total || 0,
+      });
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info.version);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-downloaded', {
+        version: info.version,
+      });
+    }
+  });
+
+  autoUpdater.on('error', (err) => {
+    console.error('AutoUpdater error:', err);
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('update-error', err.message || 'Error al verificar actualización');
+    }
+  });
+
+  ipcMain.handle('check-for-updates', async () => {
+    if (isDev) return { status: 'dev' };
+    try {
+      const result = await autoUpdater.checkForUpdates();
+      return { status: 'ok', updateInfo: result?.updateInfo };
+    } catch (err) {
+      console.error('Failed to check updates:', err);
+      return { error: err.message };
+    }
+  });
+
+  ipcMain.handle('download-update', async () => {
+    try {
+      await autoUpdater.downloadUpdate();
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to download update:', err);
+      return { error: err.message };
+    }
+  });
+
+  ipcMain.handle('install-update', () => {
+    autoUpdater.quitAndInstall(false, true);
+  });
+
   createWindow();
   createTray();
+
+  // Check for updates automatically in production 5s after startup
+  if (!isDev) {
+    setTimeout(() => {
+      autoUpdater.checkForUpdates().catch(err => console.error('Initial update check error:', err));
+    }, 5000);
+  }
 
   // Register global hotkey (Ctrl + Alt + S) to show/hide the app
   globalShortcut.register('CommandOrControl+Alt+S', () => {

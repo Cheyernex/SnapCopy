@@ -178,8 +178,72 @@ export default function App() {
   const [signingIn, setSigningIn] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const [isThemePanelOpen, setIsThemePanelOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('snapcopy_theme') || 'indigo');
+
+  // Auto-Updater states
+  const [updateAvailable, setUpdateAvailable] = useState(null);
+  const [downloadProgress, setDownloadProgress] = useState(null);
+  const [isUpdateDownloaded, setIsUpdateDownloaded] = useState(false);
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    if (window.electronAPI.onUpdateAvailable) {
+      window.electronAPI.onUpdateAvailable((info) => {
+        setUpdateAvailable(info);
+        setIsUpdateModalOpen(true);
+      });
+    }
+    if (window.electronAPI.onUpdateProgress) {
+      window.electronAPI.onUpdateProgress((progress) => {
+        setDownloadProgress(progress.percent || 0);
+      });
+    }
+    if (window.electronAPI.onUpdateDownloaded) {
+      window.electronAPI.onUpdateDownloaded(() => {
+        setIsDownloadingUpdate(false);
+        setIsUpdateDownloaded(true);
+      });
+    }
+    if (window.electronAPI.onUpdateError) {
+      window.electronAPI.onUpdateError((err) => {
+        setIsDownloadingUpdate(false);
+      });
+    }
+  }, []);
+
+  const handleStartDownloadUpdate = async () => {
+    setIsDownloadingUpdate(true);
+    setDownloadProgress(0);
+    try {
+      await window.electronAPI.downloadUpdate();
+    } catch (err) {
+      setIsDownloadingUpdate(false);
+      addToast('Error al descargar actualización');
+    }
+  };
+
+  const handleInstallUpdate = () => {
+    if (window.electronAPI && window.electronAPI.installUpdate) {
+      window.electronAPI.installUpdate();
+    }
+  };
+
+  const handleManualCheckUpdate = async () => {
+    setProfileMenuOpen(false);
+    if (!window.electronAPI || !window.electronAPI.checkForUpdates) {
+      addToast('Búsqueda de actualizaciones disponible en la versión ejecutable');
+      return;
+    }
+    addToast('Buscando actualizaciones...');
+    const res = await window.electronAPI.checkForUpdates();
+    if (res && res.status === 'dev') {
+      addToast('Modo desarrollo — Las actualizaciones funcionan en la app instalada');
+    } else if (res && res.error) {
+      addToast('No hay actualizaciones pendientes');
+    }
+  };
 
   // When a category is explicitly set, exit home view
   const isFirstRender = useRef(true);
@@ -3007,6 +3071,22 @@ export default function App() {
                         </div>
                       </div>
                       <div
+                        onClick={handleManualCheckUpdate}
+                        style={{
+                          padding: '10px 16px', borderRadius: '8px',
+                          cursor: 'pointer', fontSize: '0.85rem',
+                          color: 'var(--text-primary)', fontWeight: 500,
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          transition: 'all 0.15s ease',
+                          marginBottom: '2px'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <RefreshCw size={14} style={{ color: 'var(--color-primary)' }} />
+                        <span>Buscar actualizaciones</span>
+                      </div>
+                      <div
                         onClick={() => { setProfileMenuOpen(false); handleSignOut(); }}
                         style={{
                           padding: '12px 16px', borderRadius: '8px',
@@ -4465,6 +4545,67 @@ export default function App() {
             >
               <X size={16} />
             </button>
+          </div>
+        </div>
+      )}
+      {isUpdateModalOpen && updateAvailable && (
+        <div className="modal-backdrop" onClick={() => setIsUpdateModalOpen(false)}>
+          <div className="modal-content" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Sparkles size={20} style={{ color: 'var(--color-primary)' }} />
+                <h3 className="modal-title">Actualización Disponible</h3>
+              </div>
+              <button className="action-icon-btn" onClick={() => setIsUpdateModalOpen(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ gap: '14px' }}>
+              <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: 0 }}>
+                Una nueva versión <strong style={{ color: 'var(--color-primary)' }}>v{updateAvailable.version}</strong> de SnapCopy está disponible.
+              </p>
+              {updateAvailable.releaseNotes && (
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', color: 'var(--text-secondary)', maxHeight: '120px', overflowY: 'auto' }}>
+                  <strong>Novedades:</strong>
+                  <div style={{ marginTop: '4px', whiteSpace: 'pre-wrap' }}>{updateAvailable.releaseNotes}</div>
+                </div>
+              )}
+
+              {isDownloadingUpdate && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    <span>Descargando actualización...</span>
+                    <span>{downloadProgress || 0}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-input)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ width: `${downloadProgress || 0}%`, height: '100%', background: 'var(--color-primary)', transition: 'width 0.3s ease' }} />
+                  </div>
+                </div>
+              )}
+
+              {isUpdateDownloaded && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-success)', fontSize: '0.85rem' }}>
+                  <Check size={16} /> Descarga completada. Al reiniciar se aplicarán los cambios.
+                </div>
+              )}
+            </div>
+            <div className="modal-footer" style={{ marginTop: '16px' }}>
+              {!isDownloadingUpdate && !isUpdateDownloaded && (
+                <>
+                  <button className="btn-secondary" onClick={() => setIsUpdateModalOpen(false)}>
+                    Recordar más tarde
+                  </button>
+                  <button className="btn-primary" onClick={handleStartDownloadUpdate}>
+                    <Download size={14} style={{ marginRight: '6px' }} /> Descargar y Actualizar
+                  </button>
+                </>
+              )}
+              {isUpdateDownloaded && (
+                <button className="btn-primary" onClick={handleInstallUpdate} style={{ width: '100%' }}>
+                  <RefreshCw size={14} style={{ marginRight: '6px' }} /> Reiniciar e Instalar Ahora
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
