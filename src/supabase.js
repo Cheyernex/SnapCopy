@@ -58,8 +58,12 @@ export async function fetchCloudSnippets() {
 }
 
 export async function saveCloudSnippet(snippet) {
+  const { data: { user } } = await getSupabase().auth.getUser()
+  if (!user) return
+
   const row = {
     id: snippet.id,
+    user_id: user.id,
     title: snippet.title,
     category: snippet.category,
     content: snippet.content,

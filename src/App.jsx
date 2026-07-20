@@ -88,7 +88,7 @@ import {
   Bookmark,
   MapPin,
   Navigation,
-  Map,
+  Map as MapIcon,
   Layout,
   Columns,
   Grid,
@@ -458,8 +458,8 @@ export default function App() {
 
       addToast(`Sesión sincronizada — ${merged.snippets.length} snippet(s) cargado(s)`);
     } catch (err) {
-      console.error('Sync failed:', err);
-      addToast('Error al sincronizar con la nube');
+      console.error('Sync failed with error:', err);
+      addToast(`Error al sincronizar con la nube: ${err.message || err}`);
     } finally {
       isSyncingRef.current = false;
       setSyncingFull(false);
@@ -467,14 +467,23 @@ export default function App() {
   };
 
   const mergeCloudAndLocal = (localData, cloudSnippets) => {
-    const localMap = new Map((localData.snippets || []).map(s => [s.id, s]));
-    for (const cs of cloudSnippets) {
-      if (!localMap.has(cs.id)) {
-        localMap.set(cs.id, cs);
+    const localSnippets = (localData && localData.snippets) || [];
+    const mapObj = {};
+    for (const s of localSnippets) {
+      if (s && s.id) {
+        mapObj[s.id] = s;
       }
     }
-    const merged = Array.from(localMap.values()).sort((a, b) => (b.id || '').localeCompare(a.id || ''));
-    const workspaces = [...new Set([...(localData.workspaces || ['General']), ...cloudSnippets.map(s => s.workspace || 'General')])];
+    for (const cs of (cloudSnippets || [])) {
+      if (cs && cs.id && !mapObj[cs.id]) {
+        mapObj[cs.id] = cs;
+      }
+    }
+    const merged = Object.values(mapObj).sort((a, b) => (b.id || '').localeCompare(a.id || ''));
+    const workspaces = [...new Set([
+      ...((localData && localData.workspaces) || ['General']),
+      ...(cloudSnippets || []).map(s => s.workspace || 'General')
+    ])];
     return { snippets: merged, workspaces };
   };
 
@@ -1285,7 +1294,7 @@ export default function App() {
     Music, Headphones, Gift, Award, Crown, Gem, Leaf, Feather,
     Wind, Coffee, Smile, MessageSquare, Download, Upload, RefreshCw,
     ExternalLink, Eye, Sliders, Filter, Clock, Calendar, Watch,
-    Timer, Bookmark, MapPin, Navigation, Map, Layout, Columns, Grid, Rows
+    Timer, Bookmark, MapPin, Navigation, Map: MapIcon, Layout, Columns, Grid, Rows
   };
 
   // Helper to map category names to icons

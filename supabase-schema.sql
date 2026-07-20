@@ -1,5 +1,5 @@
 -- QuickSnippet - Supabase Schema
--- Run this in your Supabase SQL Editor
+-- Run this in your Supabase SQL Editor (safe to re-run multiple times)
 
 -- 1. Snippets table
 create table if not exists public.snippets (
@@ -25,27 +25,26 @@ create index if not exists idx_snippets_updated_at on public.snippets(updated_at
 alter table public.snippets enable row level security;
 
 -- 4. RLS Policies: users can only see/edit their own snippets
-
--- Select: users can only read their own snippets
+drop policy if exists "Users can read own snippets" on public.snippets;
 create policy "Users can read own snippets"
   on public.snippets
   for select
   using (auth.uid() = user_id);
 
--- Insert: users can create snippets with their own user_id
+drop policy if exists "Users can create own snippets" on public.snippets;
 create policy "Users can create own snippets"
   on public.snippets
   for insert
   with check (auth.uid() = user_id);
 
--- Update: users can update their own snippets
+drop policy if exists "Users can update own snippets" on public.snippets;
 create policy "Users can update own snippets"
   on public.snippets
   for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
--- Delete: users can delete their own snippets
+drop policy if exists "Users can delete own snippets" on public.snippets;
 create policy "Users can delete own snippets"
   on public.snippets
   for delete
@@ -54,6 +53,7 @@ create policy "Users can delete own snippets"
 -- 5. Auto-update updated_at on row modification
 create extension if not exists moddatetime;
 
+drop trigger if exists handle_snippets_updated_at on public.snippets;
 create trigger handle_snippets_updated_at
   before update on public.snippets
   for each row
@@ -69,24 +69,27 @@ create table if not exists public.user_settings (
 -- RLS for user_settings
 alter table public.user_settings enable row level security;
 
+drop policy if exists "Users can read own settings" on public.user_settings;
 create policy "Users can read own settings"
   on public.user_settings
   for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert own settings" on public.user_settings;
 create policy "Users can insert own settings"
   on public.user_settings
   for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own settings" on public.user_settings;
 create policy "Users can update own settings"
   on public.user_settings
   for update
   using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+drop trigger if exists handle_user_settings_updated_at on public.user_settings;
 create trigger handle_user_settings_updated_at
   before update on public.user_settings
   for each row
   execute function moddatetime(updated_at);
-
