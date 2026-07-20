@@ -211,6 +211,7 @@ export default function App() {
     if (window.electronAPI.onUpdateError) {
       window.electronAPI.onUpdateError((err) => {
         setIsDownloadingUpdate(false);
+        addToast('No se pudo descargar: el release aún no está publicado en GitHub');
       });
     }
   }, []);
@@ -219,7 +220,11 @@ export default function App() {
     setIsDownloadingUpdate(true);
     setDownloadProgress(0);
     try {
-      await window.electronAPI.downloadUpdate();
+      const res = await window.electronAPI.downloadUpdate();
+      if (res && res.error) {
+        setIsDownloadingUpdate(false);
+        addToast('Debes publicar primero el Release en GitHub con los instaladores');
+      }
     } catch (err) {
       setIsDownloadingUpdate(false);
       addToast('Error al descargar actualización');
@@ -245,6 +250,23 @@ export default function App() {
     } else if (res && res.error) {
       addToast('No hay actualizaciones pendientes');
     }
+  };
+
+  const formatReleaseNotes = (notes) => {
+    if (!notes) return null;
+    let clean = typeof notes === 'string' ? notes : String(notes);
+    clean = clean.replace(/<[^>]*>/g, '');
+    const lines = clean.split('\n').map(l => l.trim()).filter(Boolean);
+    return lines.map((line, idx) => {
+      let text = line.replace(/^[-*•]\s*/, '');
+      if (!text) return null;
+      return (
+        <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '6px' }}>
+          <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--color-primary)', marginTop: '6px', flexShrink: 0 }} />
+          <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>{text}</span>
+        </div>
+      );
+    });
   };
 
   // When a category is explicitly set, exit home view
@@ -465,10 +487,14 @@ export default function App() {
   }, []);
 
   // Sync all snippets and settings to/from cloud after login or session restore
-  const syncAllToCloud = async (snippetsData) => {
+  const syncAllToCloud = async (snippetsData, showFullOverlay = false) => {
     if (isSyncingRef.current) return;
     isSyncingRef.current = true;
-    setSyncingFull(true);
+    if (showFullOverlay) {
+      setSyncingFull(true);
+    } else {
+      setSyncing(true);
+    }
     try {
       // 1. Fetch cloud snippets & user settings
       const cloudSnippets = await fetchCloudSnippets().catch(e => {
@@ -522,13 +548,18 @@ export default function App() {
       const activeTheme = finalThemes[finalCurrentWorkspace] || 'indigo';
       setTheme(activeTheme);
 
-      addToast(`Sesión sincronizada — ${merged.snippets.length} snippet(s) cargado(s)`);
+      if (showFullOverlay) {
+        addToast(`Sesión sincronizada — ${merged.snippets.length} snippet(s) cargado(s)`);
+      }
     } catch (err) {
       console.error('Sync failed with error:', err);
-      addToast(`Error al sincronizar con la nube: ${err.message || err}`);
+      if (showFullOverlay) {
+        addToast(`Error al sincronizar con la nube: ${err.message || err}`);
+      }
     } finally {
       isSyncingRef.current = false;
       setSyncingFull(false);
+      setSyncing(false);
     }
   };
 
@@ -611,7 +642,7 @@ export default function App() {
             if (authUser) {
               setUser(authUser);
               setCloudEnabled(true);
-              syncAllToCloud(localDataRef.current);
+              syncAllToCloud(localDataRef.current, true);
             }
           }
           setSigningIn(false);
@@ -4572,61 +4603,129 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* 8. MODAL DE ACTUALIZACIÓN DE APLICACIÓN DE ALTA ESTÉTICA */}
       {isUpdateModalOpen && updateAvailable && (
         <div className="modal-backdrop" onClick={() => setIsUpdateModalOpen(false)}>
-          <div className="modal-content" style={{ maxWidth: '440px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Sparkles size={20} style={{ color: 'var(--color-primary)' }} />
-                <h3 className="modal-title">Actualización Disponible</h3>
+          <div
+            className="modal-content"
+            style={{
+              maxWidth: '460px',
+              backgroundColor: '#0b0f19',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '20px',
+              boxShadow: '0 25px 60px rgba(0, 0, 0, 0.75)',
+              padding: '24px',
+              animation: 'fadeIn 0.2s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="modal-header" style={{ marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{
+                  width: '38px', height: '38px', borderRadius: '12px',
+                  background: 'linear-gradient(135deg, rgba(99,102,241,0.2) 0%, rgba(168,85,247,0.2) 100%)',
+                  border: '1px solid rgba(99,102,241,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--color-primary)'
+                }}>
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h3 className="modal-title" style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                    Nueva Actualización
+                  </h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SnapCopy Desktop App</span>
+                </div>
               </div>
               <button className="action-icon-btn" onClick={() => setIsUpdateModalOpen(false)}>
                 <X size={18} />
               </button>
             </div>
-            <div className="modal-body" style={{ gap: '14px' }}>
-              <p style={{ fontSize: '0.95rem', color: 'var(--text-primary)', margin: 0 }}>
-                Una nueva versión <strong style={{ color: 'var(--color-primary)' }}>v{updateAvailable.version}</strong> de SnapCopy está disponible.
-              </p>
+
+            {/* Body */}
+            <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(255, 255, 255, 0.02)', padding: '12px 16px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Versión disponible:</span>
+                <span style={{
+                  padding: '3px 10px', borderRadius: '20px',
+                  backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                  border: '1px solid rgba(99, 102, 241, 0.3)',
+                  color: '#818cf8', fontSize: '0.85rem', fontWeight: 700
+                }}>
+                  v{updateAvailable.version}
+                </span>
+              </div>
+
               {updateAvailable.releaseNotes && (
-                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', color: 'var(--text-secondary)', maxHeight: '120px', overflowY: 'auto' }}>
-                  <strong>Novedades:</strong>
-                  <div style={{ marginTop: '4px', whiteSpace: 'pre-wrap' }}>{updateAvailable.releaseNotes}</div>
+                <div style={{
+                  background: 'rgba(15, 23, 42, 0.6)',
+                  padding: '14px', borderRadius: '12px',
+                  border: '1px solid rgba(255, 255, 255, 0.06)',
+                  maxHeight: '150px', overflowY: 'auto'
+                }}>
+                  <div style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.5px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                    Notas de la versión
+                  </div>
+                  <div>
+                    {formatReleaseNotes(updateAvailable.releaseNotes)}
+                  </div>
                 </div>
               )}
 
               {isDownloadingUpdate && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    <span>Descargando actualización...</span>
-                    <span>{downloadProgress || 0}%</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px', borderRadius: '12px', background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    <span>Descargando paquetes...</span>
+                    <span style={{ color: 'var(--color-primary)' }}>{downloadProgress || 0}%</span>
                   </div>
-                  <div style={{ width: '100%', height: '8px', background: 'var(--bg-input)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div style={{ width: `${downloadProgress || 0}%`, height: '100%', background: 'var(--color-primary)', transition: 'width 0.3s ease' }} />
+                  <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.06)', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{
+                      width: `${downloadProgress || 0}%`, height: '100%',
+                      background: 'linear-gradient(90deg, #6366f1 0%, #a855f7 100%)',
+                      borderRadius: '4px', transition: 'width 0.3s ease'
+                    }} />
                   </div>
                 </div>
               )}
 
               {isUpdateDownloaded && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-success)', fontSize: '0.85rem' }}>
-                  <Check size={16} /> Descarga completada. Al reiniciar se aplicarán los cambios.
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px', borderRadius: '12px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', color: 'var(--color-success)', fontSize: '0.85rem', fontWeight: 500 }}>
+                  <Check size={18} />
+                  <span>La actualización se ha descargado y está lista para instalar.</span>
                 </div>
               )}
             </div>
-            <div className="modal-footer" style={{ marginTop: '16px' }}>
+
+            {/* Footer */}
+            <div className="modal-footer" style={{ marginTop: '20px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
               {!isDownloadingUpdate && !isUpdateDownloaded && (
                 <>
-                  <button className="btn-secondary" onClick={() => setIsUpdateModalOpen(false)}>
-                    Recordar más tarde
+                  <button
+                    className="btn-secondary"
+                    onClick={() => setIsUpdateModalOpen(false)}
+                    style={{ padding: '10px 18px', borderRadius: '10px', fontSize: '0.85rem' }}
+                  >
+                    Más tarde
                   </button>
-                  <button className="btn-primary" onClick={handleStartDownloadUpdate}>
-                    <Download size={14} style={{ marginRight: '6px' }} /> Descargar y Actualizar
+                  <button
+                    className="btn-primary"
+                    onClick={handleStartDownloadUpdate}
+                    style={{ padding: '10px 20px', borderRadius: '10px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}
+                  >
+                    <Download size={15} />
+                    <span>Descargar e Instalar</span>
                   </button>
                 </>
               )}
               {isUpdateDownloaded && (
-                <button className="btn-primary" onClick={handleInstallUpdate} style={{ width: '100%' }}>
-                  <RefreshCw size={14} style={{ marginRight: '6px' }} /> Reiniciar e Instalar Ahora
+                <button
+                  className="btn-primary"
+                  onClick={handleInstallUpdate}
+                  style={{ width: '100%', padding: '12px', borderRadius: '10px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 700 }}
+                >
+                  <RefreshCw size={16} />
+                  <span>Reiniciar e Instalar Ahora</span>
                 </button>
               )}
             </div>
