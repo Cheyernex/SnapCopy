@@ -190,11 +190,28 @@ export default function App() {
   const [signingIn, setSigningIn] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [isThemePanelOpen, setIsThemePanelOpen] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('snapcopy_theme') || 'indigo');
   const [codeTheme, setCodeTheme] = useState(() => localStorage.getItem('snapcopy_code_theme') || 'vs-dark');
   const [selectedTagFilter, setSelectedTagFilter] = useState(null);
   const [formTags, setFormTags] = useState('');
+  const [autoStartEnabled, setAutoStartEnabled] = useState(false);
   const searchInputRef = useRef(null);
+
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState(null);
+
+  // Close context menu on click or scroll
+  useEffect(() => {
+    if (!contextMenu) return;
+    const close = () => setContextMenu(null);
+    window.addEventListener('click', close);
+    window.addEventListener('scroll', close, true);
+    return () => {
+      window.removeEventListener('click', close);
+      window.removeEventListener('scroll', close, true);
+    };
+  }, [contextMenu]);
 
   const handleCodeThemeChange = (newTheme) => {
     setCodeTheme(newTheme);
