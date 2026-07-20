@@ -195,8 +195,19 @@ export default function App() {
   const createIconPickerRef = useRef(null);
   const aboutRef = useRef(null);
 
-  const localDataRef = useRef({ snippets: [], workspaces: ['General'], currentWorkspace: 'General' });
+  const localDataRef = useRef({
+    snippets: [],
+    workspaces: ['General'],
+    currentWorkspace: 'General',
+    folders: {},
+    workspaceColors: {},
+    workspaceThemes: {},
+    categoriesOrder: null,
+    categoryIcons: {},
+  });
   const signingOutRef = useRef(false);
+  const isSyncingRef = useRef(false);
+
 
   // Cloud sync helper with loading indicator
   const syncToCloud = async (fn) => {
@@ -339,6 +350,8 @@ export default function App() {
         setCloudEnabled(true);
         setInitializing(false);
         initialSessionChecked = true;
+        // Sync cloud snippets & settings on session restore
+        syncAllToCloud(localDataRef.current);
       }
     });
 
@@ -355,6 +368,7 @@ export default function App() {
         if (session) {
           setUser(session.user);
           setCloudEnabled(true);
+          syncAllToCloud(localDataRef.current);
         }
         setInitializing(false);
         const shown = localStorage.getItem('shortcut_info_shown');
@@ -384,54 +398,86 @@ export default function App() {
     };
   }, []);
 
-  // Sync all snippets to cloud after login
+  // Sync all snippets and settings to/from cloud after login or session restore
   const syncAllToCloud = async (snippetsData) => {
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
     setSyncingFull(true);
     try {
-      // Upload local snippets
-      for (const s of snippetsData.snippets) {
-        await saveCloudSnippet(s);
+      // 1. Fetch cloud snippets & user settings
+      const cloudSnippets = await fetchCloudSnippets().catch(e => {
+        console.error('Failed to fetch cloud snippets:', e);
+        return [];
+      });
+      const cloudSettings = await fetchUserSettings().catch(e => {
+        console.error('Failed to fetch user settings:', e);
+        return null;
+      });
+
+      // 2. Identify default sample snippets (if cloud has existing snippets, remove default sample snippets)
+      const defaultIds = new Set(['default-1', 'default-2', 'default-3', 'default-4']);
+      let localSnippetsToSync = snippetsData?.snippets || [];
+      if (cloudSnippets.length > 0) {
+        localSnippetsToSync = localSnippetsToSync.filter(s => !defaultIds.has(s.id));
       }
-      // Fetch cloud snippets and merge
-      const cloudSnippets = await fetchCloudSnippets();
-      const merged = mergeCloudAndLocal(snippetsData, cloudSnippets);
 
-      // Fetch cloud user settings (workspaces, folders, colors, themes)
-      let cloudSettings = null;
-      try { cloudSettings = await fetchUserSettings(); } catch (e) { /* ignore */ }
+      // 3. Upload non-default local snippets to cloud
+      for (const s of localSnippetsToSync) {
+        if (!defaultIds.has(s.id)) {
+          await saveCloudSnippet(s).catch(e => console.error('Failed to save cloud snippet:', e));
+        }
+      }
 
-      const finalWorkspaces = cloudSettings?.workspaces || merged.workspaces;
-      const finalCurrentWorkspace = cloudSettings?.currentWorkspace || merged.currentWorkspace;
-      const finalFolders = cloudSettings?.folders || snippetsData.folders || {};
-      const finalColors = cloudSettings?.workspaceColors || snippetsData.workspaceColors || {};
-      const finalThemes = cloudSettings?.workspaceThemes || snippetsData.workspaceThemes || {};
+      // 4. Merge cloud snippets with local non-default snippets
+      const merged = mergeCloudAndLocal({ ...snippetsData, snippets: localSnippetsToSync }, cloudSnippets);
 
-      await saveSnippetsData(merged.snippets, finalWorkspaces, finalCurrentWorkspace, finalFolders, finalColors, finalThemes);
+      // 5. Restore settings from cloud (or fallback to local)
+      const finalWorkspaces = cloudSettings?.workspaces || merged.workspaces || ['General'];
+      const finalCurrentWorkspace = cloudSettings?.currentWorkspace || merged.currentWorkspace || 'General';
+      const finalFolders = cloudSettings?.folders || snippetsData?.folders || {};
+      const finalColors = cloudSettings?.workspaceColors || snippetsData?.workspaceColors || {};
+      const finalThemes = cloudSettings?.workspaceThemes || snippetsData?.workspaceThemes || {};
+      const finalCategoriesOrder = cloudSettings?.categoriesOrder || categoriesOrder || null;
+      const finalCategoryIcons = cloudSettings?.categoryIcons || categoryIcons || {};
 
-      // Apply theme for current workspace
+      // 6. Save merged data locally & update state
+      await saveSnippetsData(
+        merged.snippets,
+        finalWorkspaces,
+        finalCurrentWorkspace,
+        finalFolders,
+        finalColors,
+        finalThemes,
+        finalCategoriesOrder,
+        finalCategoryIcons
+      );
+
+      // Apply theme for active workspace
       const activeTheme = finalThemes[finalCurrentWorkspace] || 'indigo';
       setTheme(activeTheme);
 
-      addToast(`Sesión iniciada — ${snippetsData.snippets.length} snippet(s) sincronizado(s)`);
+      addToast(`Sesión sincronizada — ${merged.snippets.length} snippet(s) cargado(s)`);
     } catch (err) {
       console.error('Sync failed:', err);
       addToast('Error al sincronizar con la nube');
     } finally {
+      isSyncingRef.current = false;
       setSyncingFull(false);
     }
   };
 
   const mergeCloudAndLocal = (localData, cloudSnippets) => {
-    const localMap = new Map(localData.snippets.map(s => [s.id, s]));
+    const localMap = new Map((localData.snippets || []).map(s => [s.id, s]));
     for (const cs of cloudSnippets) {
       if (!localMap.has(cs.id)) {
         localMap.set(cs.id, cs);
       }
     }
     const merged = Array.from(localMap.values()).sort((a, b) => (b.id || '').localeCompare(a.id || ''));
-    const workspaces = [...new Set([...localData.workspaces, ...cloudSnippets.map(s => s.workspace || 'General')])];
+    const workspaces = [...new Set([...(localData.workspaces || ['General']), ...cloudSnippets.map(s => s.workspace || 'General')])];
     return { snippets: merged, workspaces };
   };
+
 
   // Reset selection on category/folder/workspace change
   useEffect(() => {
@@ -490,12 +536,7 @@ export default function App() {
             if (authUser) {
               setUser(authUser);
               setCloudEnabled(true);
-              const localData = localDataRef.current;
-              if (localData.snippets.length > 0) {
-                syncAllToCloud(localData);
-              } else {
-                addToast(`Conectado como ${authUser.email}`);
-              }
+              syncAllToCloud(localDataRef.current);
             }
           }
           setSigningIn(false);
@@ -646,6 +687,8 @@ export default function App() {
             setWorkspaceColors(data.workspaceColors || {});
             const wThemes = data.workspaceThemes || {};
             setWorkspaceThemes(wThemes);
+            if (data.categoriesOrder) setCategoriesOrder(data.categoriesOrder);
+            if (data.categoryIcons) setCategoryIcons(data.categoryIcons);
             if (wThemes[curW]) setTheme(wThemes[curW]);
           } else if (Array.isArray(data) && data.length > 0) {
             // Migrar formato antiguo
@@ -697,6 +740,8 @@ export default function App() {
               setWorkspaceColors(parsed.workspaceColors || {});
               const wThemes = parsed.workspaceThemes || {};
               setWorkspaceThemes(wThemes);
+              if (parsed.categoriesOrder) setCategoriesOrder(parsed.categoriesOrder);
+              if (parsed.categoryIcons) setCategoryIcons(parsed.categoryIcons);
               if (wThemes[curW]) setTheme(wThemes[curW]);
             } else if (Array.isArray(parsed)) {
               // Migrar
@@ -747,13 +792,32 @@ export default function App() {
   }, []);
 
   // Save snippets utility (local + cloud)
-  const saveSnippetsData = async (newSnippets, newWorkspaces = workspaces, newCurrentWorkspace = currentWorkspace, newFolders = folders, newWorkspaceColors = workspaceColors, newWorkspaceThemes = workspaceThemes) => {
+  const saveSnippetsData = async (
+    newSnippets,
+    newWorkspaces = workspaces,
+    newCurrentWorkspace = currentWorkspace,
+    newFolders = folders,
+    newWorkspaceColors = workspaceColors,
+    newWorkspaceThemes = workspaceThemes,
+    newCategoriesOrder = categoriesOrder,
+    newCategoryIcons = categoryIcons
+  ) => {
     setSnippets(newSnippets);
     setWorkspaces(newWorkspaces);
     setCurrentWorkspace(newCurrentWorkspace);
     setWorkspaceColors(newWorkspaceColors);
     setWorkspaceThemes(newWorkspaceThemes);
     if (newFolders !== folders) setFolders(newFolders);
+    if (newCategoriesOrder !== categoriesOrder) setCategoriesOrder(newCategoriesOrder);
+    if (newCategoryIcons !== categoryIcons) setCategoryIcons(newCategoryIcons);
+
+    if (newCategoriesOrder) {
+      localStorage.setItem('snapcopy_categories_order', JSON.stringify(newCategoriesOrder));
+    }
+    if (newCategoryIcons) {
+      localStorage.setItem('snapcopy_category_icons', JSON.stringify(newCategoryIcons));
+    }
+
     localDataRef.current = {
       snippets: newSnippets,
       workspaces: newWorkspaces,
@@ -761,6 +825,8 @@ export default function App() {
       folders: newFolders,
       workspaceColors: newWorkspaceColors,
       workspaceThemes: newWorkspaceThemes,
+      categoriesOrder: newCategoriesOrder,
+      categoryIcons: newCategoryIcons,
     };
 
     const dataObj = localDataRef.current;
@@ -775,7 +841,7 @@ export default function App() {
       localStorage.setItem('quick_snippets', JSON.stringify(dataObj));
     }
 
-    // Sync non-snippet settings to Supabase (workspaces, folders, colors, themes)
+    // Sync non-snippet settings to Supabase (workspaces, folders, colors, themes, categories, icons)
     if (cloudEnabled) {
       try {
         await saveUserSettings({
@@ -784,6 +850,8 @@ export default function App() {
           folders: newFolders,
           workspaceColors: newWorkspaceColors,
           workspaceThemes: newWorkspaceThemes,
+          categoriesOrder: newCategoriesOrder,
+          categoryIcons: newCategoryIcons,
         });
       } catch (e) {
         console.error('Failed to sync user settings to cloud:', e);
@@ -1148,47 +1216,39 @@ export default function App() {
   const orderedCategories = categoriesOrder || [...defaultCategories];
   const allCategories = [...orderedCategories, ...uniqueUserCategories.filter(c => !orderedCategories.includes(c))];
 
-  const handleCreateCategory = () => {
+  const handleCreateCategory = async () => {
     const name = newCategoryName.trim();
     if (!name || allCategories.includes(name)) return;
-    const updated = [...orderedCategories, name];
-    setCategoriesOrder(updated);
-    localStorage.setItem('snapcopy_categories_order', JSON.stringify(updated));
+    const updatedOrder = [...orderedCategories, name];
     const updatedIcons = { ...categoryIcons, [name]: selectedCategoryIcon };
-    setCategoryIcons(updatedIcons);
-    localStorage.setItem('snapcopy_category_icons', JSON.stringify(updatedIcons));
     setNewCategoryName('');
     setSelectedCategoryIcon('Code');
+    await saveSnippetsData(snippets, workspaces, currentWorkspace, folders, workspaceColors, workspaceThemes, updatedOrder, updatedIcons);
     addToast(`Categoría "${name}" creada`);
   };
 
   const handleDeleteCategory = async (cat) => {
     const updatedSnippets = snippets.map(s => s.category === cat ? { ...s, category: 'General' } : s);
-    await saveSnippetsData(updatedSnippets, workspaces, currentWorkspace);
+    const updatedOrder = orderedCategories.filter(c => c !== cat);
+    const { [cat]: _, ...updatedIcons } = categoryIcons;
+    await saveSnippetsData(updatedSnippets, workspaces, currentWorkspace, folders, workspaceColors, workspaceThemes, updatedOrder, updatedIcons);
     await syncToCloud(async () => {
       const affected = updatedSnippets.filter(s => s.category === 'General');
       const originalCatIds = new Set(snippets.filter(s => s.category === cat).map(s => s.id));
       const toSync = affected.filter(s => originalCatIds.has(s.id));
       await Promise.all(toSync.map(s => saveCloudSnippet(s)));
     });
-    const updated = orderedCategories.filter(c => c !== cat);
-    setCategoriesOrder(updated);
-    localStorage.setItem('snapcopy_categories_order', JSON.stringify(updated));
-    const { [cat]: _, ...restIcons } = categoryIcons;
-    setCategoryIcons(restIcons);
-    localStorage.setItem('snapcopy_category_icons', JSON.stringify(restIcons));
     addToast(`Categoría "${cat}" eliminada`);
   };
 
-  const handleMoveCategory = (cat, direction) => {
+  const handleMoveCategory = async (cat, direction) => {
     const idx = orderedCategories.indexOf(cat);
     if (idx === -1) return;
-    const updated = [...orderedCategories];
+    const updatedOrder = [...orderedCategories];
     const target = idx + direction;
-    if (target < 0 || target >= updated.length) return;
-    [updated[idx], updated[target]] = [updated[target], updated[idx]];
-    setCategoriesOrder(updated);
-    localStorage.setItem('snapcopy_categories_order', JSON.stringify(updated));
+    if (target < 0 || target >= updatedOrder.length) return;
+    [updatedOrder[idx], updatedOrder[target]] = [updatedOrder[target], updatedOrder[idx]];
+    await saveSnippetsData(snippets, workspaces, currentWorkspace, folders, workspaceColors, workspaceThemes, updatedOrder, categoryIcons);
   };
 
   const handleRenameCategory = async (oldName) => {
@@ -1198,22 +1258,19 @@ export default function App() {
       return;
     }
     const updatedSnippets = snippets.map(s => s.category === oldName ? { ...s, category: newName } : s);
-    await saveSnippetsData(updatedSnippets, workspaces, currentWorkspace);
+    const updatedOrder = orderedCategories.map(c => c === oldName ? newName : c);
+    let updatedIcons = { ...categoryIcons };
+    if (categoryIcons[oldName]) {
+      updatedIcons[newName] = categoryIcons[oldName];
+      delete updatedIcons[oldName];
+    }
+    await saveSnippetsData(updatedSnippets, workspaces, currentWorkspace, folders, workspaceColors, workspaceThemes, updatedOrder, updatedIcons);
     await syncToCloud(async () => {
       const affected = updatedSnippets.filter(s => s.category === newName);
       const oldCatIds = new Set(snippets.filter(s => s.category === oldName).map(s => s.id));
       const toSync = affected.filter(s => oldCatIds.has(s.id));
       await Promise.all(toSync.map(s => saveCloudSnippet(s)));
     });
-    const updated = orderedCategories.map(c => c === oldName ? newName : c);
-    setCategoriesOrder(updated);
-    localStorage.setItem('snapcopy_categories_order', JSON.stringify(updated));
-    if (categoryIcons[oldName]) {
-      const updatedIcons = { ...categoryIcons, [newName]: categoryIcons[oldName] };
-      delete updatedIcons[oldName];
-      setCategoryIcons(updatedIcons);
-      localStorage.setItem('snapcopy_category_icons', JSON.stringify(updatedIcons));
-    }
     setEditingCategory(null);
     addToast(`Categoría renombrada a "${newName}"`);
   };
@@ -3827,11 +3884,10 @@ export default function App() {
                                   key={key}
                                   type="button"
                                   className="action-icon-btn"
-                                  onClick={() => {
+                                  onClick={async () => {
                                     const updatedIcons = { ...categoryIcons, [cat]: key };
-                                    setCategoryIcons(updatedIcons);
-                                    localStorage.setItem('snapcopy_category_icons', JSON.stringify(updatedIcons));
                                     setEditingCategoryIcon(null);
+                                    await saveSnippetsData(snippets, workspaces, currentWorkspace, folders, workspaceColors, workspaceThemes, categoriesOrder, updatedIcons);
                                   }}
                                   title={key}
                                   style={{ width: '30px', height: '30px', background: (categoryIcons[cat] || 'FileText') === key ? 'var(--color-primary)' : 'transparent', borderRadius: '6px', color: (categoryIcons[cat] || 'FileText') === key ? '#fff' : 'var(--text-primary)' }}

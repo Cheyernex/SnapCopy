@@ -90,40 +90,55 @@ export async function deleteCloudSnippetsByWorkspace(workspace) {
   if (error) throw error
 }
 
-// ─── User Settings (workspaces, folders, colors, themes) ────────────────────
+// ─── User Settings (workspaces, folders, colors, themes, categories, icons) ───
 
 /**
  * Fetch the persisted app settings (non-snippet config) from Supabase.
  * Returns null if no settings exist yet for the user.
  */
 export async function fetchUserSettings() {
-  const { data: { user } } = await getSupabase().auth.getUser()
-  if (!user) return null
+  try {
+    const { data: { user } } = await getSupabase().auth.getUser()
+    if (!user) return null
 
-  const { data, error } = await getSupabase()
-    .from('user_settings')
-    .select('settings')
-    .eq('user_id', user.id)
-    .maybeSingle()
+    const { data, error } = await getSupabase()
+      .from('user_settings')
+      .select('settings')
+      .eq('user_id', user.id)
+      .maybeSingle()
 
-  if (error) throw error
-  return data?.settings || null
+    if (error) {
+      console.warn('Could not fetch user settings:', error.message)
+      return null
+    }
+    return data?.settings || null
+  } catch (err) {
+    console.warn('fetchUserSettings error:', err)
+    return null
+  }
 }
 
 /**
  * Upsert the app settings (non-snippet config) into Supabase.
- * @param {Object} settings - { workspaces, currentWorkspace, folders, workspaceColors, workspaceThemes }
+ * @param {Object} settings - { workspaces, currentWorkspace, folders, workspaceColors, workspaceThemes, categoriesOrder, categoryIcons }
  */
 export async function saveUserSettings(settings) {
-  const { data: { user } } = await getSupabase().auth.getUser()
-  if (!user) return
+  try {
+    const { data: { user } } = await getSupabase().auth.getUser()
+    if (!user) return
 
-  const { error } = await getSupabase()
-    .from('user_settings')
-    .upsert(
-      { user_id: user.id, settings },
-      { onConflict: 'user_id' }
-    )
+    const { error } = await getSupabase()
+      .from('user_settings')
+      .upsert(
+        { user_id: user.id, settings, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      )
 
-  if (error) throw error
+    if (error) {
+      console.warn('Could not save user settings:', error.message)
+    }
+  } catch (err) {
+    console.warn('saveUserSettings error:', err)
+  }
 }
+
