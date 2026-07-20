@@ -61,7 +61,7 @@
       "icon": "electron/icon.ico"
     },
     "nsis": {
-      "artifactName": "SnapCopy Setup.${ext}",
+      "artifactName": "SnapCopy-Setup.${ext}",
       "uninstallDisplayName": "SnapCopy",
       "oneClick": false,
       "perMachine": false,
