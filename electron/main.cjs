@@ -506,17 +506,34 @@ app.whenReady().then(() => {
     }, 3600000); // every hour
   }
 
-  // Register global hotkey (Ctrl + Alt + S) to show/hide the app
-  globalShortcut.register('CommandOrControl+Alt+S', () => {
-    if (mainWindow) {
-      if (mainWindow.isVisible()) {
-        mainWindow.hide();
-      } else {
+  // Register global hotkeys: Ctrl + Alt + S (Toggle Show/Hide) & Ctrl + Shift + V (Quick Search)
+  try {
+    globalShortcut.register('CommandOrControl+Alt+S', () => {
+      if (mainWindow) {
+        if (mainWindow.isVisible()) {
+          mainWindow.hide();
+        } else {
+          mainWindow.show();
+          mainWindow.focus();
+          mainWindow.webContents.send('focus-search');
+        }
+      }
+    });
+  } catch (err) {
+    console.warn('Could not register Ctrl+Alt+S:', err);
+  }
+
+  try {
+    globalShortcut.register('CommandOrControl+Shift+V', () => {
+      if (mainWindow) {
         mainWindow.show();
         mainWindow.focus();
+        mainWindow.webContents.send('focus-search');
       }
-    }
-  });
+    });
+  } catch (err) {
+    console.warn('Could not register Ctrl+Shift+V:', err);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
