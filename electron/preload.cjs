@@ -22,4 +22,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdateDownloaded: (callback) => ipcRenderer.on('update-downloaded', (_event, value) => callback(value)),
   onUpdateNotAvailable: (callback) => ipcRenderer.on('update-not-available', (_event, value) => callback(value)),
   onUpdateError: (callback) => ipcRenderer.on('update-error', (_event, value) => callback(value)),
+
+  // Session persistence (Supabase auth)
+  sessionGetItem: (key) => ipcRenderer.invoke('session-get-item', key),
+  sessionSetItem: (key, value) => ipcRenderer.invoke('session-set-item', key, value),
+  sessionRemoveItem: (key) => ipcRenderer.invoke('session-remove-item', key),
 });

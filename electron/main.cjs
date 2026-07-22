@@ -21,6 +21,7 @@ let mainWindow;
 let tray = null;
 
 let SNIPPETS_FILE;
+let SESSION_FILE;
 
 // Read snippets from JSON file
 function getSnippets() {
@@ -93,6 +94,38 @@ function saveSnippets(snippets) {
 
 
 
+// ─── Session persistence (Supabase auth) ───
+function getSessionData() {
+  try {
+    if (fs.existsSync(SESSION_FILE)) {
+      return JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Error reading session file:', e);
+  }
+  return {};
+}
+
+function setSessionItem(key, value) {
+  try {
+    const data = getSessionData();
+    data[key] = value;
+    fs.writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error('Error writing session file:', e);
+  }
+}
+
+function removeSessionItem(key) {
+  try {
+    const data = getSessionData();
+    delete data[key];
+    fs.writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error('Error removing session item:', e);
+  }
+}
+
 function createTray() {
   try {
     const iconPath = path.join(__dirname, 'icon.png');
@@ -131,7 +164,7 @@ function createTray() {
   }
 }
 
-function startProductionServer() {
+function startProductionServer(retryPort) {
   const distPath = path.resolve(__dirname, '..', 'dist');
   const mimeTypes = {
     '.html': 'text/html',
@@ -144,6 +177,7 @@ function startProductionServer() {
     '.woff': 'font/woff',
     '.woff2': 'font/woff2',
   };
+  const port = retryPort || 15174;
 
   const server = http.createServer((req, res) => {
     let filePath = path.join(distPath, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
@@ -167,7 +201,7 @@ function startProductionServer() {
     });
   });
 
-  server.listen(0, '127.0.0.1', () => {
+  server.listen(port, '127.0.0.1', () => {
     const assignedPort = server.address().port;
     console.log(`SnapCopy server running at http://127.0.0.1:${assignedPort}`);
     if (mainWindow) {
@@ -177,9 +211,20 @@ function startProductionServer() {
 
   server.on('error', (err) => {
     console.error('Failed to start production server:', err);
-    if (mainWindow) {
-      const indexPath = path.resolve(__dirname, '..', 'dist', 'index.html');
-      mainWindow.loadFile(indexPath);
+    // Retry with random port if fixed port is taken
+    if (port === 15174) {
+      server.listen(0, '127.0.0.1', () => {
+        const assignedPort = server.address().port;
+        console.log(`SnapCopy server running (fallback port) at http://127.0.0.1:${assignedPort}`);
+        if (mainWindow) {
+          mainWindow.loadURL(`http://127.0.0.1:${assignedPort}`);
+        }
+      });
+    } else {
+      if (mainWindow) {
+        const indexPath = path.resolve(__dirname, '..', 'dist', 'index.html');
+        mainWindow.loadFile(indexPath);
+      }
     }
   });
 }
@@ -349,8 +394,13 @@ app.whenReady().then(() => {
       console.error('Failed to migrate old data:', e);
     }
   }
+  SESSION_FILE = path.join(app.getPath('userData'), 'session.json');
+
   ipcMain.handle('get-snippets', getSnippets);
   ipcMain.handle('save-snippets', (event, snippets) => saveSnippets(snippets));
+  ipcMain.handle('session-get-item', (event, key) => getSessionData()[key] ?? null);
+  ipcMain.handle('session-set-item', (event, key, value) => setSessionItem(key, value));
+  ipcMain.handle('session-remove-item', (event, key) => removeSessionItem(key));
   ipcMain.handle('copy-to-clipboard', (event, text) => {
     clipboard.writeText(text);
     return true;

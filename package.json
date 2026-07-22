@@ -3,7 +3,7 @@
   "private": true,
   "author": "CMT DEV SOLUTIONS",
   "description": "Gestor inteligente y ultra-rápido de snippets de código para desarrolladores",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {

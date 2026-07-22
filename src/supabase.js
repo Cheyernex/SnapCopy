@@ -6,6 +6,32 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 let supabase = null
 let authListener = null
 
+function createStorageAdapter() {
+  const hasElectronAPI = typeof window !== 'undefined' && window.electronAPI
+  return {
+    getItem: async (key) => {
+      if (hasElectronAPI && window.electronAPI.sessionGetItem) {
+        return window.electronAPI.sessionGetItem(key)
+      }
+      return localStorage.getItem(key)
+    },
+    setItem: async (key, value) => {
+      if (hasElectronAPI && window.electronAPI.sessionSetItem) {
+        await window.electronAPI.sessionSetItem(key, value)
+        return
+      }
+      localStorage.setItem(key, value)
+    },
+    removeItem: async (key) => {
+      if (hasElectronAPI && window.electronAPI.sessionRemoveItem) {
+        await window.electronAPI.sessionRemoveItem(key)
+        return
+      }
+      localStorage.removeItem(key)
+    },
+  }
+}
+
 export function createSupabaseClient() {
   supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
@@ -13,6 +39,7 @@ export function createSupabaseClient() {
       persistSession: true,
       detectSessionInUrl: true,
       flowType: 'pkce',
+      storage: createStorageAdapter(),
     },
   })
   return supabase
